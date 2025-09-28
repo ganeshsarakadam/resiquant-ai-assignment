@@ -95,7 +95,7 @@ export default function Home() {
               maxSize={45}
               className="min-w-0"
             >
-              <div className="h-full border-l bg-white min-h-0 overflow-hidden">
+              <div className="h-full border-l bg-white min-h-0">
                 <FieldList />
               </div>
             </ResizablePanel>

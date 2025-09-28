@@ -4,7 +4,7 @@ import { Document as DocType } from "@/types";
 import { FileSpreadsheet, Download, RefreshCw } from "lucide-react";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import {
   Carousel,
   CarouselContent,

@@ -1,0 +1,49 @@
+{
+    "submissionId": "sub_7",
+    "title": "8010 Remmet Ave LLC",
+    "extractedFields": [
+      {
+        "id": "field-1",
+        "name": "Name Insured",
+        "value": "8010 Remmet Avenue, LLC, EIMAX, LLC, Michael B. Bushman",
+        "confidence": 0.95,
+        "fieldType": "text",
+        "provenance": {
+          "docId": "doc-docx-coverage-summary",
+          "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
+          "page": 1,
+          "location": "Page 1",
+          "snippet": "Name Insured: 8010 Remmet Avenue, LLC, EIMAX, LLC, Michael B. Bushman",
+          "bbox": [0.07, 0.12, 0.55, 0.05]
+        }
+      }, {
+        "id": "field-2",
+        "name":"Description",
+        "value": "Commercial Property Owner -Warehouse Light Industrial",
+        "confidence": 0.95,
+        "fieldType": "text",
+        "provenance": {
+          "docId": "doc-docx-coverage-summary",
+          "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
+          "page": 1,
+          "location": "Page 1",
+          "snippet": "Description: Commercial Property Owner -Warehouse Light Industrial",
+          "bbox": [0.07, 0.22, 0.67, 0.03]
+        }
+      }
+    ],
+    "extractionMetadata": {
+      "extractedAt": "2024-09-17T21:44:51Z",
+      "extractionMethod": "AI/OCR",
+      "totalFields": 1,
+      "averageConfidence": 0.95,
+      "documentsProcessed": [
+        {
+          "docId": "doc-docx-coverage-summary",
+          "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
+          "pages": 1,
+          "fieldsExtracted": 1
+        }
+      ]
+    }
+  }

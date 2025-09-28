@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Document as DocType } from '@/types'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel'
 import { PdfPageSkeleton } from './Skeletons/PdfPageSkeleton'
+import { HighlightOverlay } from './HighlightOverlay'
+import type { ExtractionData, ExtractedField } from '@/types'
 
 // Dynamically import react-pdf components and setup to avoid SSR issues
 const Document = dynamic(
@@ -25,6 +27,12 @@ export interface PdfViewerProps {
   onDocumentLoadError?: (error: Error) => void;
   onDocumentLoadProgress?: (ratio: number) => void;
   onPageChange?: (page: number) => void;
+  /** When provided, we'll attempt to load extraction JSON at /public/data/extraction_<submissionId>.json */
+  submissionId?: string;
+  /** Enable/disable overlay globally */
+  showExtractionOverlay?: boolean;
+  /** Callback when a highlight is clicked */
+  onHighlightClick?: (field: ExtractedField) => void;
 }
 
 export const PdfViewer = ({
@@ -34,6 +42,9 @@ export const PdfViewer = ({
   onDocumentLoadError,
   onDocumentLoadProgress,
   onPageChange,
+  submissionId,
+  showExtractionOverlay = true,
+  onHighlightClick,
 }: PdfViewerProps) => {
   const [api, setApi] = useState<CarouselApi>()
   const [numPages, setNumPages] = useState<number>(0)
@@ -41,6 +52,8 @@ export const PdfViewer = ({
   const [progress, setProgress] = useState(0)
   const [loadedPages, setLoadedPages] = useState<Set<number>>(new Set())
   const [isClient, setIsClient] = useState(false)
+  const [extraction, setExtraction] = useState<ExtractionData | null>(null)
+  const containerRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -53,7 +66,41 @@ export const PdfViewer = ({
     setIsLoading(true)
     setProgress(0)
     setLoadedPages(new Set())
+    // Clear extraction only if submission changes or document changes
+    // keep same extraction if navigating pages within same document
   }, [document.url])
+
+  // Load extraction JSON dynamically based on submissionId
+  useEffect(() => {
+    if (!submissionId || !showExtractionOverlay) {
+      setExtraction(null)
+      return
+    }
+    let cancelled = false
+    const path = `/data/extraction_${submissionId}.json`
+    fetch(path)
+      .then(r => {
+        if (!r.ok) throw new Error(`Extraction file not found: ${path}`)
+        return r.json()
+      })
+      .then((data: ExtractionData) => { if (!cancelled) setExtraction(data) })
+      .catch(err => { console.warn('Extraction load failed', err); if (!cancelled) setExtraction(null) })
+    return () => { cancelled = true }
+  }, [submissionId, showExtractionOverlay])
+
+  // Filter extraction fields for this PDF document & page
+  const fieldsByPage = useMemo(() => {
+    if (!extraction) return new Map<number, ExtractedField[]>()
+    const map = new Map<number, ExtractedField[]>()
+    for (const f of extraction.extractedFields) {
+      if (f.provenance.docName === document.name && f.provenance.bbox && f.provenance.page) {
+        const arr = map.get(f.provenance.page) || []
+        arr.push(f)
+        map.set(f.provenance.page, arr)
+      }
+    }
+    return map
+  }, [extraction, document.name])
 
   const handleDocSuccess = (pdf: any) => {
     setNumPages(pdf.numPages)
@@ -136,9 +183,13 @@ useEffect(() => {
             {numPages > 0 && Array.from({ length: numPages }).map((_, i) => {
               const pageNumber = i + 1
               const pageLoaded = loadedPages.has(pageNumber)
+              const pageFields = fieldsByPage.get(pageNumber) || []
               return (
                 <CarouselItem key={pageNumber} className="h-full flex items-center justify-center bg-gray-100">
-                  <div className="shadow-lg max-w-full max-h-full relative">
+                  <div
+                    className="shadow-lg max-w-full max-h-full relative"
+                    ref={(el) => { if (el) containerRefs.current.set(pageNumber, el) }}
+                  >
                     {!pageLoaded && (
                       <div className="absolute inset-0 z-10">
                         {/* <PdfPageSkeleton pageNumber={pageNumber} /> */}
@@ -152,6 +203,22 @@ useEffect(() => {
                       onLoadSuccess={() => markPageLoaded(pageNumber)}
                       onLoadError={(e: any) => console.error('Page load error', pageNumber, e)}
                     />
+                    {showExtractionOverlay && pageFields.length > 0 && (
+                      <HighlightOverlay
+                        width={containerRefs.current.get(pageNumber)?.clientWidth || 0}
+                        height={containerRefs.current.get(pageNumber)?.clientHeight || 0}
+                        boxes={pageFields.map((f: ExtractedField) => f.provenance.bbox!).filter(Boolean)}
+                        fieldValue={pageFields.map((f: ExtractedField) => f.name).join(', ')}
+                        onClickBox={() => {
+                          // If multiple fields share a region, we could open a tooltip/modal; here call first.
+                          if (onHighlightClick && pageFields[0]) onHighlightClick(pageFields[0])
+                        }}
+                        documentType="pdf"
+                        opacity={0.25}
+                        color="#f59e0b"
+                        showLabels={false}
+                      />
+                    )}
                   </div>
                 </CarouselItem>
               )

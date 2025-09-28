@@ -22,3 +22,45 @@ export interface Submission {
     documents: Document[];
 }
 
+export interface ExtractedField {
+  id: string;
+  name: string;
+  value: string;
+  confidence: number;
+  fieldType: string
+  provenance: FieldProvenance;
+}
+
+
+export interface FieldProvenance {
+  docId: string;
+  docName: string;
+  page: number;
+  location: string;
+  snippet: string;
+  bbox?: [number, number, number, number]; 
+  cell?: string; 
+}
+
+export interface ExtractionData {
+  submissionId: string;
+  title: string;
+  extractedFields: ExtractedField[];
+  extractionMetadata: ExtractionMetadata;
+}
+
+export interface ExtractionMetadata {
+  extractedAt: string;
+  extractionMethod: string;
+  totalFields: number;
+  averageConfidence: number;
+  documentsProcessed: DocumentProcessed[];
+}
+
+export interface DocumentProcessed {
+  docId: string;
+  docName: string;
+  pages: number;
+  fieldsExtracted: number;
+}
+

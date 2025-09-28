@@ -91,6 +91,11 @@ const DocumentViewer = () => {
                         onDocumentLoadSuccess={onDocumentLoadSuccess}
                         onDocumentLoadError={onDocumentLoadError}
                         onPageChange={(p: number) => { setCurrentPage(p - 1); setPageNumber(p); }}
+                        submissionId={state.submissionId}
+                        showExtractionOverlay={true}
+                        onHighlightClick={(field) => {
+                            console.log('Clicked highlight field:', field)
+                        }}
                     />
                 );
             case 'image':

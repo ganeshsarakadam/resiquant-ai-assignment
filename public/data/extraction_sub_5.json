@@ -1,0 +1,176 @@
+{
+  "submissionId": "sub_5",
+  "title": "Francisco Galvis Submission",
+  "extractedFields": [
+    {
+      "id": "field-1",
+      "name": "Account Name",
+      "value": "14950 Burbank Blvd, LLC",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "Account Name: 14950 Burbank Blvd, LLC",
+        "bbox": [0.15, 0.21, 0.35, 0.02]
+      }
+    },
+    {
+      "id": "field-2",
+      "name": "Mail Address",
+      "value": "10341 Vanalden Ave",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "Mail Address: 10341 Vanalden Ave",
+        "bbox": [0.15, 0.24, 0.35, 0.02]
+      }
+    },
+    {
+      "id": "field-3",
+      "name": "Suite/Building",
+      "value": "",
+      "confidence": 0,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "Suite/Building: ",
+        "bbox": [0.15, 0.25, 0.35, 0.02]
+      }
+    },
+    {
+      "id": "field-4",
+      "name": "City",
+      "value": "Porter Ranch",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "City: Porter Ranch",
+        "bbox": [0.12, 0.29, 0.30, 0.02]
+      }
+    },
+    {
+      "id": "field-5",
+      "name": "State",
+      "value": "CA",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "State: CA",
+        "bbox": [0.44, 0.29, 0.10, 0.02]
+      }
+    },
+    {
+      "id": "field-6",
+      "name": "Zip Code",
+      "value": "91326",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "Zip Code: 91326",
+        "bbox": [0.59, 0.29, 0.10, 0.02]
+      }
+    },
+    {
+      "id": "field-7",
+      "name": "Location",
+      "value": "14950 Burbank Blvd, Sherman Oaks, CA 91411",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 1,
+        "location": "Page 1",
+        "snippet": "Location: 14950 Burbank Blvd, Sherman Oaks, CA 91411",
+        "bbox": [0.15, 0.37, 0.40, 0.02]
+      }
+    },
+    {
+      "id": "field-8",
+      "name": "Building Shape",
+      "value": "Regular",
+      "confidence": 0.95,
+      "fieldType": "select",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 2,
+        "location": "Page 2",
+        "snippet": "Building Shape: Regular",
+        "bbox": [0.10, 0.16, 0.58, 0.03]
+      }
+    },
+    {
+      "id": "field-9",
+      "name": "Inspection Contact",
+      "value": "Danny Ross",
+      "confidence": 0.95,
+      "fieldType": "text",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 2,
+        "location": "Page 2",
+        "snippet": "Inspection Contact: Danny Ross",
+        "bbox": [0.10, 0.39, 0.58, 0.02]
+      }
+    },
+    {
+      "id": "field-10",
+      "name": "Inspection Telephone",
+      "value": "(818)-497-7941",
+      "confidence": 0.95,
+      "fieldType": "number",
+      "provenance": {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "page": 2,
+        "location": "Page 2",
+        "snippet": "Inspection Telephone: (818)-497-7941",
+        "bbox": [0.10, 0.42, 0.58, 0.02]
+      }
+    }
+  ],
+  "extractionMetadata": {
+    "extractedAt": "2024-09-17T21:44:51Z",
+    "extractionMethod": "AI/OCR",
+    "totalFields": 10,
+    "averageConfidence": 0.897,
+    "documentsProcessed": [
+      {
+        "docId": "doc-pdf-attachment",
+        "docName": "Attachment.pdf",
+        "pages": 2,
+        "fieldsExtracted": 6
+      },
+      {
+        "docId": "doc-mail-francisco", 
+        "docName": "Mail - Francisco Galvis - Outlook.pdf",
+        "pages": 1,
+        "fieldsExtracted": 4
+      }
+    ]
+  }
+}
