@@ -92,6 +92,16 @@ export const PdfViewer = ({
     })
   }, [api, onPageChange])
 
+  /**
+   * This is the useEffect hook that scrolls to the initial page
+   * It is used to scroll to the initial page when the component mounts
+   */
+useEffect(() => {
+  if (!api) return
+  api.scrollTo(initialPage - 1)
+}, [api, initialPage])
+
+
   // Show loading skeleton until client-side hydration is complete
   // if (!isClient) {
   //   return (

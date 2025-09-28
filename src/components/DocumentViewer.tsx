@@ -2,94 +2,68 @@
 
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState"
 import { EmailViewer } from "@/components/EmailViewer"
-import { submissions } from "@/data/submissions.manifest"
 import { FileText } from "lucide-react"
-import { document_map } from "@/data/documents.manifest"
-import dynamic from "next/dynamic"
 import { ImageViewer } from "@/components/ImageViewer"
 import { SheetViewer } from "@/components/SheetViewer"
 import { DocxViewer } from "@/components/DocxViewer"
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel"
 import { useState, useEffect } from "react"
+import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
-import { PdfPageSkeleton } from "./Skeletons/PdfPageSkeleton"
-import { ImageViewerSkeleton } from './Skeletons/ImageViewerSkeleton'
-import { SheetViewerSkeleton } from './Skeletons/SheetViewerSkeleton'
-import { EmailViewerSkeleton } from './Skeletons/EmailViewerSkeleton'
-// @ts-ignore - bundler moduleResolution may not pick up .tsx during type phase
-import { PdfViewer } from './PdfViewer'
 
 const DocumentViewer = () => {
     const { state, setPageNumber } = useSelectionUrlState();
-    const [current, setCurrent] = useState(0);
+    const [currentPage, setCurrentPage] = useState(0);
     const [numPages, setNumPages] = useState<number>(0);
-    const [isPdfLoading, setIsPdfLoading] = useState(true); // PDF-specific
-    const [pdfProgress, setPdfProgress] = useState(0);
-    const [isDocxLoading, setIsDocxLoading] = useState(false);
-    const [isImageLoading, setIsImageLoading] = useState(false);
-    const [isSheetLoading, setIsSheetLoading] = useState(false);
-    const [isEmailLoading, setIsEmailLoading] = useState(false);
-    
-    // Get the current document from the selected submission
+    const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
+
+    /**
+     * This function can be easily extended to support documents on cloud storage systems
+     * such as S3BlobStorage, Azure Blob Storage, etc.
+     */
     const document = getDocumentById(state.documentId);
 
 
-    // Page syncing handled inside PdfViewer component
-
-    // on document load success
+    /**
+     * On document load success, we set the number of pages and the loading state to false
+     * @param pdf 
+     */
     const onDocumentLoadSuccess = (pdf: any) => {
         setNumPages(pdf.numPages);
-        console.log('onDocumentLoadSuccess', pdf);
-        setIsPdfLoading(false);
+        setIsDocumentLoadingInProgress(false);
     }
 
-    // on document load error
+    /**
+     * On document load error, we set the loading state to false
+     * @param error 
+     */
     const onDocumentLoadError = (error: Error) => {
-        console.log('onDocumentLoadError', error);
-        setIsPdfLoading(false);
+        setIsDocumentLoadingInProgress(false);
     }
 
-    const onDocumentLoadProgress = (ratio: number) => {
-        setPdfProgress(ratio);
-    }
 
-    // Reset loading flags when document changes
+    /**
+     * On document change, we reset the number of pages and set the loading state to true
+     * If no document is selected, we set the loading state to false
+     * If a document is selected, we set the loading state to true
+     */
     useEffect(() => {
         setNumPages(0);
-        if (!document) return;
-        // Clear all
-        setIsPdfLoading(false);
-        setIsDocxLoading(false);
-        setIsImageLoading(false);
-        setIsSheetLoading(false);
-        setIsEmailLoading(false);
-        switch (document.type) {
-            case 'pdf':
-                setIsPdfLoading(true); break;
-            case 'docx':
-                setIsDocxLoading(true); break;
-            case 'image':
-                setIsImageLoading(true); break;
-            case 'xlsx':
-                setIsSheetLoading(true); break;
-            case 'eml':
-                setIsEmailLoading(true); break;
+        if (!document) {
+            setIsDocumentLoadingInProgress(false);
+            return;
         }
+        setIsDocumentLoadingInProgress(true);
     }, [document]);
 
-    // For now PdfViewer handles its own progress; when those viewers support callbacks we can hook their success events to flip flags off.
     
-    // Render different viewers based on document type
+    /**
+     * Render different viewers based on document type
+     * If no document is selected, we show a message to select a document
+     * If a document is selected, we render the appropriate viewer based on the document type   
+     */
+
     const renderDocumentViewer = () => {
-        
         if (!document) {
             return (
                 <div className="h-full flex items-center justify-center bg-gray-50">
@@ -116,16 +90,15 @@ const DocumentViewer = () => {
                         initialPage={state.page || 1}
                         onDocumentLoadSuccess={onDocumentLoadSuccess}
                         onDocumentLoadError={onDocumentLoadError}
-                        onDocumentLoadProgress={(r: number) => setPdfProgress(r)}
-                        onPageChange={(p: number) => { setCurrent(p - 1); setPageNumber(p); }}
+                        onPageChange={(p: number) => { setCurrentPage(p - 1); setPageNumber(p); }}
                     />
                 );
             case 'image':
                 return <ImageViewer document={document} />;
             case 'xlsx':
-                return <SheetViewer document={document} />;
+                return <SheetViewer document={document} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
             case 'docx':
-                return <DocxViewer document={document} onReady={({ pageCount }) => { setIsDocxLoading(false); }} />;
+                return <DocxViewer document={document} initialPage={state.page || 1} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} onPageChange={(p: number) => { setCurrentPage(p - 1); setPageNumber(p); }} />;
             case 'eml':
                 return <EmailViewer document={document} />;
             default:
@@ -155,7 +128,7 @@ const DocumentViewer = () => {
                     <div className="flex items-center gap-4">
                         {document && document.type === 'pdf' && (
                             <span className="text-xs text-gray-500">
-                                Page {current + 1} of {numPages || '?'}
+                                Page {currentPage + 1} of {numPages || '?'}
                             </span>
                         )}
                         {document && (
@@ -167,38 +140,10 @@ const DocumentViewer = () => {
                 </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto relative">
-                {/* High-level skeleton while we don't yet know numPages (initial parse) */}
-                {/* Per-type skeleton overlays */}
-                {document && (
-                    <>
-                        {document.type === 'pdf' && isPdfLoading && (!numPages || numPages === 0) && (
-                            <div className="absolute inset-0 z-20">
-                                <DocumentViewerSkeleton />
-                            </div>
-                        )}
-                        {document.type === 'docx' && isDocxLoading && (
-                            <div className="absolute inset-0 z-20">
-                                {/* Re-use existing Docx skeleton */}
-                                {/* Could accept page guess later */}
-                                <DocumentViewerSkeleton />
-                            </div>
-                        )}
-                        {document.type === 'image' && isImageLoading && (
-                            <div className="absolute inset-0 z-20">
-                                <ImageViewerSkeleton />
-                            </div>
-                        )}
-                        {document.type === 'xlsx' && isSheetLoading && (
-                            <div className="absolute inset-0 z-20">
-                                <SheetViewerSkeleton />
-                            </div>
-                        )}
-                        {document.type === 'eml' && isEmailLoading && (
-                            <div className="absolute inset-0 z-20">
-                                <EmailViewerSkeleton />
-                            </div>
-                        )}
-                    </>
+                {document && isDocumentLoadingInProgress && (
+                    <div className="absolute inset-0 z-20">
+                        <DocumentViewerSkeleton />
+                    </div>
                 )}
                 {renderDocumentViewer()}
             </div>

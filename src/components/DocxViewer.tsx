@@ -1,16 +1,10 @@
 'use client';
 
-// Logging: module evaluated
-console.log('[DocxViewer] module loaded');
-
 import { Document as DocType } from "@/types";
 import { File, Download, RefreshCw } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { DocxViewerSkeleton } from "./Skeletons/DocxViewerSkeleton";
 import { renderAsync } from "docx-preview";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
-
-// shadcn/ui carousel
 import {
   Carousel,
   CarouselContent,
@@ -20,7 +14,13 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 
-/* ---------- helper: load fonts (optional) ---------- */
+
+/**
+ * 
+ * @param list list of fonts to load
+ * @returns list of fonts loaded
+ */
+
 async function loadFonts(
   list: { name: string; url: string }[]
 ): Promise<{ name: string; data: ArrayBuffer }[]> {
@@ -36,7 +36,12 @@ async function loadFonts(
   return out;
 }
 
-/* ---------- mounts a raw DOM node into a div ---------- */
+
+/**
+ * @param param0 node to mount into a div
+ * @returns div with the node mounted into it
+ */
+
 function PageMount({ node }: { node: HTMLElement }) {
   const hostRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -51,46 +56,52 @@ function PageMount({ node }: { node: HTMLElement }) {
   return <div ref={hostRef} className="flex justify-center" />;
 }
 
+
+
+
 interface DocxViewerProps {
   document: DocType;
+  initialPage?: number;
   onReady?: (info: { pageCount: number }) => void;
   onError?: (error: Error) => void;
+  onPageChange?: (page: number) => void;
 }
 
-export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * 
+ * @param param0 document to render
+ * @param initialPage initial page to render
+ * @param onReady callback when document is loaded
+ * @param onError callback when document fails to load
+ * @param onPageChange callback when page changes
+ * @returns docx viewer
+ */
 
-  // URL state integration
+export const DocxViewer = ({ document: doc, initialPage = 1, onReady, onError, onPageChange }: DocxViewerProps) => {
+  const [error, setError] = useState<string | null>(null);
   const { state, setPageNumber } = useSelectionUrlState();
 
-  // hidden staging container where docx-preview renders initially
+  /**
+   * hidden staging container where docx-preview renders initially
+   */
   const stagingRef = useRef<HTMLDivElement>(null);
 
-  // pages to show in the carousel
   const [pages, setPages] = useState<HTMLElement[]>([]);
   const [api, setApi] = useState<CarouselApi>();
   const [currentIndex, setCurrentIndex] = useState(0);
-  // Refs to manage initial sync logic
-  const hadInitialPageParamRef = useRef<boolean>(state.page != null);
-  const firstSelectRef = useRef<boolean>(true);
-  const initialAppliedRef = useRef<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
-
     async function run() {
       try {
-  console.log('[DocxViewer] start render run()', { url: doc.url, hadInitialPage: state.page });
-        setIsLoading(true);
         setError(null);
         setPages([]);
-        // Reset sync guards when document changes
-        hadInitialPageParamRef.current = state.page != null;
-        firstSelectRef.current = true;
-        initialAppliedRef.current = false;
 
-        // fetch doc as ArrayBuffer
+        /**
+         * Fetch doc as ArrayBuffer
+         * If the doc is a string, fetch it as a string
+         * If the doc is a File, fetch it as a File
+         */
         let buf: ArrayBuffer;
         if (typeof doc.url === "string") {
           const res = await fetch(doc.url);
@@ -100,20 +111,21 @@ export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps)
           buf = await (doc.url as File).arrayBuffer();
         }
 
-        // optional: load fonts
+        /**
+         * Optional: load fonts
+         * If the fonts are not loaded, the document will not be rendered
+         */
         let fonts: { name: string; data: ArrayBuffer }[] = [];
         try {
           fonts = await loadFonts([
             { name: "Times New Roman", url: "/fonts/TimesNewRoman.ttf" },
             { name: "Calibri", url: "/fonts/Calibri.ttf" },
           ]);
-        } catch {}
+        } catch { }
 
         const staging = stagingRef.current;
         if (!staging) return;
         staging.innerHTML = "";
-
-  console.log('[DocxViewer] fetched buffer, invoking renderAsync');
         await renderAsync(buf, staging, undefined, {
           inWrapper: true,
           breakPages: true,
@@ -129,35 +141,48 @@ export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps)
 
         if (!isMounted) return;
 
-        // each page is a .docx under .docx-wrapper
+        /**
+         * Each page is a .docx under .docx-wrapper
+         * pages is an array of page nodes
+         * detach the pages from the staging container
+         * set the pages state
+         * set the initial page index
+         * set the current index
+         * fire the onReady callback
+         */
         const pageNodes = Array.from(
           staging.querySelectorAll<HTMLElement>(".docx-wrapper > .docx")
         ) as HTMLElement[];
-  console.log('[DocxViewer] renderAsync complete; pages extracted', { count: pageNodes.length });
-
-        // detach from staging so we can mount in slides
         pageNodes.forEach((n) => { (n as HTMLElement).parentElement?.removeChild(n); });
         setPages(pageNodes);
-        setCurrentIndex(0);
-        setIsLoading(false);
-  console.log('[DocxViewer] pages state set, isLoading=false');
-        // Fire onReady once after successful load
+        const initialPageIndex = Math.max(0, Math.min((initialPage || state.page || 1) - 1, pageNodes.length - 1));
+        setCurrentIndex(initialPageIndex);
         try {
           onReady?.({ pageCount: pageNodes.length });
         } catch (cbErr) {
           console.warn('[DocxViewer] onReady callback error', cbErr);
         }
-        // If carousel api already exists (hot reload scenario) reInit to pick up new slides
+        
+        /**
+         * If the carousel api already exists (hot reload scenario) reInit to pick up new slides
+         */
         if (api) {
-          try { api.reInit(); console.log('[DocxViewer] api.reInit after pages set'); } catch (e) { console.warn('[DocxViewer] api.reInit failed', e); }
+          try { api.reInit(); } catch (e) { console.warn('[DocxViewer] api.reInit failed', e); }
         }
       } catch (err) {
+        /**
+         * If the error is not an instance of Error, create a new Error
+         * Set the error message
+         * Fire the onError callback
+         */
         console.error("Error rendering DOCX:", err);
         const e = err instanceof Error ? err : new Error('Failed to render document');
         if (isMounted) {
           setError(e.message);
-          setIsLoading(false);
         }
+        /**
+         * Fire the onError callback
+         */
         try { onError?.(e); } catch (cbErr) { console.warn('[DocxViewer] onError callback error', cbErr); }
       }
     }
@@ -166,61 +191,55 @@ export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps)
     return () => { isMounted = false; };
   }, [doc.url]);
 
-  // Embla select -> update local index (and maybe URL) after initial sync
+ /**
+  * This is the onSelect callback for the carousel
+  * It updates the current index and the page number
+  * It also fires the onPageChange callback
+  */
   useEffect(() => {
     if (!api) return;
     const onSelect = () => {
       const idx = api.selectedScrollSnap();
       setCurrentIndex(idx);
-      const desired = idx + 1; // 1-based
-      // If initial URL param existed and we haven't applied it yet, skip until URL->carousel effect runs
-      if (firstSelectRef.current && hadInitialPageParamRef.current && !initialAppliedRef.current) {
-        console.log('[DocxViewer] early select ignored pending initial URL scroll');
-        return;
-      }
-      if (firstSelectRef.current) {
-        firstSelectRef.current = false; // consume flag if we reach here
-      }
+      const desired = idx + 1; 
       if (state.page !== desired) {
         setPageNumber(desired);
-        console.log('[DocxViewer] onSelect -> setPageNumber', { desired });
       }
+      onPageChange?.(desired);
     };
     api.on('select', onSelect);
     return () => { api.off('select', onSelect); };
-  }, [api, setPageNumber, state.page]);
+  }, [api]);
 
-  // URL -> carousel (initial + subsequent external changes)
+ 
+  /**
+   * This is the useEffect hook that syncs the carousel with the URL state
+   * It scrolls to the target page and updates the current index
+   */
   useEffect(() => {
-    if (!api) return;
-    if (!pages.length) return; // need pages to target
-    const urlPage = state.page || 1;
-    const clamped = Math.min(Math.max(urlPage, 1), pages.length) - 1;
-    const current = api.selectedScrollSnap();
-    const needsScroll = current !== clamped || !initialAppliedRef.current;
-    if (needsScroll) {
-      const jump = !initialAppliedRef.current; // jump on first application
-      api.scrollTo(clamped, jump);
-      console.log('[DocxViewer] URL->carousel scrollTo', { urlPage, clamped, jump });
-    }
-    if (!initialAppliedRef.current) {
-      initialAppliedRef.current = true;
-      firstSelectRef.current = false; // we've now applied initial position; allow future selects to update URL
-      setCurrentIndex(clamped);
-      console.log('[DocxViewer] initialAppliedRef set true', { clamped });
-      if (state.page !== clamped + 1) {
-        // Normalize URL if it was out of bounds
-        setPageNumber(clamped + 1);
-        console.log('[DocxViewer] normalized out-of-range page param', { newPage: clamped + 1 });
-      }
-    }
-  }, [state.page, api, pages.length]);
+    if (!api || !pages.length) return;
 
+    const targetPage = Math.max(0, Math.min((initialPage || state.page || 1) - 1, pages.length - 1));
+    const current = api.selectedScrollSnap();
+
+    if (current !== targetPage) {
+      api.scrollTo(targetPage);
+      setCurrentIndex(targetPage);
+    }
+  }, [api, state.page]);
+
+  /**
+   * This is the handleRetry callback
+   * It sets the error to null
+   */
   const handleRetry = useCallback(() => {
     setError(null);
-    setIsLoading(true);
   }, []);
 
+  /**
+   * This is the handleDownload callback
+   * It creates a new a element and downloads the document
+   */
   const handleDownload = useCallback(() => {
     const a = document.createElement("a");
     a.href = doc.url as string;
@@ -263,13 +282,9 @@ export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps)
 
       {/* Main viewer: white background + single outer scrollbar */}
       <div className="flex-1 overflow-auto bg-white">
-        {/* Loading / Error overlays */}
-        {isLoading && (
-          <div className="w-full h-full flex items-center justify-center">
-            {/* <DocxViewerSkeleton /> */}
-          </div>
-        )}
-        {error && !isLoading && (
+        {/* Error overlays */}
+
+        {error && (
           <div className="w-full h-full flex items-center justify-center p-6 bg-white">
             <div className="max-w-sm text-center">
               <h3 className="text-sm font-semibold text-red-600 mb-2">Failed to render DOCX</h3>
@@ -287,7 +302,7 @@ export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps)
         )}
 
         {/* Carousel with arrows overlayed; no inner scrollboxes */}
-        {!isLoading && !error && pages.length > 0 && (
+        {!error && pages.length > 0 && (
           <div className="h-full flex flex-col">
             <div className="flex-1">
               <Carousel
@@ -308,21 +323,25 @@ export const DocxViewer = ({ document: doc, onReady, onError }: DocxViewerProps)
 
                 {/* overlay controls */}
                 {
-                    pages.length > 1 && (
-                        <>
-                            <CarouselPrevious className="left-2 z-20 cursor-pointer" />
-                            <CarouselNext className="right-2 z-20 cursor-pointer" />
-                        </>
-                    )
+                  pages.length > 1 && (
+                    <>
+                      <CarouselPrevious className="left-2 z-20 cursor-pointer" />
+                      <CarouselNext className="right-2 z-20 cursor-pointer" />
+                    </>
+                  )
                 }
-               
-               
+
+
               </Carousel>
             </div>
           </div>
         )}
 
-        {/* hidden staging area */}
+        {
+          /**
+           * Hidden staging area
+           */
+        }
         <div
           ref={stagingRef}
           className="absolute -left-[9999px] -top-[9999px] opacity-0 pointer-events-none"

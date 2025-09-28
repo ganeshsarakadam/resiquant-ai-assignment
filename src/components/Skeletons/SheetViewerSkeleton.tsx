@@ -13,7 +13,7 @@ export const SheetViewerSkeleton = () => {
           ))}
         </div>
       </div>
-      <span className="sr-only">Loading spreadsheet...</span>
+      <span className="sr-only">...</span>
     </div>
   )
 }
