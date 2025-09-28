@@ -1,103 +1,129 @@
-import Image from "next/image";
+'use client';
+
+import SideMenu from "@/components/SideMenu";
+import DocumentViewer from "@/components/DocumentViewer";
+import FieldList from "@/components/FieldList";
+import SubmissionSelector from "@/components/SubmissionSelector";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { PanelLeftOpen } from "lucide-react";
+import { useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [menuCollapsed, setMenuCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  
+
+  return (
+    <div className="flex flex-col h-dvh bg-gray-50 overflow-hidden">
+      {/* Header */}
+      <header className="sticky top-0 z-30 border-b bg-white">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-2 xl:px-4">
+          <div className="h-14 flex items-center justify-between gap-2">
+            {/* Mobile: open sidebar */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="xl:hidden">
+                  <PanelLeftOpen className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-[90vw] sm:w-[420px]">
+                <SheetHeader className="px-4 py-3 border-b">
+                  <SheetTitle>Documents</SheetTitle>
+                </SheetHeader>
+                <div className="h-[calc(100vh-3.25rem)] overflow-y-auto">
+                    <SideMenu
+                    collapsed={false}
+                    setCollapsed={() => {}}
+                    // onSelect={() => setMobileMenuOpen(false)}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <div className="text-xl font-semibold tracking-tight">
+              Submission Document Explorer
+            </div>
+
+            <div className="w-9" />
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </header>
+
+      {/* Submission selector */}
+      <div className="border-b bg-white">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-7 py-3">
+          <SubmissionSelector />
+        </div>
+      </div>
+
+      {/* Main: sidebar | content */}
+      <div className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden">
+        {/* Desktop sidebar (xl and up) */}
+        <div className="hidden xl:block flex-none">
+          <SideMenu collapsed={menuCollapsed} setCollapsed={setMenuCollapsed} />
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+          {/* Desktop: horizontal split (only on xl) */}
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="hidden xl:flex h-full w-full"
+          >
+            <ResizablePanel
+              defaultSize={menuCollapsed ? 70 : 60}
+              minSize={30}
+              className="min-w-0"
+            >
+              <div className="h-full bg-white min-h-0 overflow-hidden">
+                <DocumentViewer />
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel
+              defaultSize={40}
+              minSize={18}
+              maxSize={45}
+              className="min-w-0"
+            >
+              <div className="h-full border-l bg-white min-h-0 overflow-hidden">
+                <FieldList />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+
+          {/* Mobile/Tablet: vertical split */}
+          {/* <ResizablePanelGroup
+            direction="vertical"
+            autoSaveId="home-mobile-vertical"
+            className="flex xl:hidden h-full w-full"
+          >
+            <ResizablePanel defaultSize={65} minSize={40} collapsible className="min-h-0">
+              <div className="h-full bg-white min-h-0 overflow-hidden">
+                <DocumentViewer />
+              </div>
+            </ResizablePanel>
+            <ResizableHandle
+              withHandle
+              className="data-[panel-group-direction=vertical]:h-4 data-[panel-group-direction=vertical]:my-1"
+            />
+            <ResizablePanel defaultSize={35} minSize={20} collapsible className="min-h-0">
+              <div className="h-full border-t bg-white min-h-0 overflow-hidden">
+                <FieldList />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup> */}
+        </div>
+      </div>
     </div>
   );
 }

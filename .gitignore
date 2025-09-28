@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# submission
+public/submissions/**
+
+# Ignore local submission documents
+public/submissions/**
+!public/submissions/.gitkeep
