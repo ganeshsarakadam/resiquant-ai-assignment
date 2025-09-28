@@ -49,6 +49,12 @@ export const submissions: Submission[] = [
                 name: "Mail - Francisco Galvis - Outlook.pdf",
                 type: "pdf",
                 url: createDocUrl("sub_5", "Mail - Francisco Galvis - Outlook.pdf")
+            },
+            {
+                id: "docx-ganesh-sarakadam",
+                name: "Ganesh-Sarakadam-Resume.docx",
+                type: "docx",
+                url: createDocUrl("sub_5", "Ganesh-Sarakadam-Resume.docx")
             }
         ]
     },

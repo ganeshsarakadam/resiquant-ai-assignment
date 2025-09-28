@@ -29,6 +29,12 @@ export const document_map: DocumentMap = {
         type: "pdf",
         url: createDocUrl("sub_5", "Mail - Francisco Galvis - Outlook.pdf")
     },
+    "docx-ganesh-sarakadam": {
+        name: "Ganesh-Sarakadam-Resume.docx",
+        id: "docx-ganesh-sarakadam",
+        type: "docx",
+        url: createDocUrl("sub_5", "Ganesh-Sarakadam-Resume.docx")
+    },
     "pdf-remmet-bushman-prop": {
         name: "Remmet Bushman Prop.pdf",
         id: "pdf-remmet-bushman-prop",
