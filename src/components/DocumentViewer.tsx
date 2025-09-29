@@ -10,7 +10,7 @@ import { useState, useEffect } from "react"
 import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
-import { useHighlight } from "@/contexts/HighlightContext"
+import { useHighlightSetter } from "@/contexts/HighlightContext"
 import { ExtractedField } from "@/types"
 import { loadExtraction } from "@/lib/utils"
 
@@ -20,7 +20,7 @@ interface DocumentViewerProps {
 
 const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const { state, setPageNumber } = useSelectionUrlState();
-    const { highlightedField, highlightField } = useHighlight();
+    const highlightField = useHighlightSetter();
     const [numPages, setNumPages] = useState<number>(0);
     const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
     const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
@@ -116,33 +116,52 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
 
         switch (document.type) {
             case 'pdf':
-                                return (
-                                    <PdfViewer
-                                        extractedFields={extractedFields}   
-                                        document={document}
-                                        initialPage={state.page || 1}
-                                        onDocumentLoadSuccess={onDocumentLoadSuccess}
-                                        onDocumentLoadError={onDocumentLoadError}
-                                        submissionId={state.submissionId}
-                                        onHighlightClick={(field) => {
-                                            if (!field) return;
-                                            // Use context to highlight field - it will handle document selection automatically
-                                            highlightField(field);
-                                            onFieldHighlight?.(field.id);
-                                        }}
-                                    />
-                                );
+                return (
+                    <PdfViewer
+                        extractedFields={extractedFields}
+                        document={document}
+                        initialPage={state.page || 1}
+                        onDocumentLoadSuccess={onDocumentLoadSuccess}
+                        onDocumentLoadError={onDocumentLoadError}
+                        submissionId={state.submissionId}
+                        onHighlightClick={(field) => {
+                            if (!field) return;
+                            highlightField(field);
+                            onFieldHighlight?.(field.id);
+                        }}
+                    />
+                );
             case 'image':
                 return <ImageViewer document={document} />;
             case 'xlsx':
-                return <SheetViewer document={document} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
+                return (
+                    <SheetViewer
+                        document={document}
+                        extractedFields={extractedFields}
+                        onHighlightClick={(field) => {
+                            if (!field) return;
+                            highlightField(field);
+                            onFieldHighlight?.(field.id);
+                        }}
+                        onReady={() => { setIsDocumentLoadingInProgress(false); }}
+                        onError={() => { setIsDocumentLoadingInProgress(false); }}
+                    />
+                );
             case 'docx':
-                return <DocxViewer  document={document}  onHighlightClick={(field) => {
-                    if (!field) return;
-                    // Use context to highlight field - it will handle document selection automatically
-                    highlightField(field);
-                    onFieldHighlight?.(field.id);
-                }}  extractedFields={extractedFields} initialPage={state.page || 1}  onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
+                return (
+                    <DocxViewer
+                        document={document}
+                        onHighlightClick={(field) => {
+                            if (!field) return;
+                            highlightField(field);
+                            onFieldHighlight?.(field.id);
+                        }}
+                        extractedFields={extractedFields}
+                        initialPage={state.page || 1}
+                        onReady={() => { setIsDocumentLoadingInProgress(false); }}
+                        onError={() => { setIsDocumentLoadingInProgress(false); }}
+                    />
+                );
             case 'eml':
                 return <EmailViewer document={document} />;
             default:

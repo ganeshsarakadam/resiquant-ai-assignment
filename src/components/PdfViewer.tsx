@@ -54,7 +54,7 @@ export const PdfViewer = ({
   const containerRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
 
-
+console.log("pdf viewer rerendered")
   
 
   // // Load extraction JSON dynamically based on submissionId

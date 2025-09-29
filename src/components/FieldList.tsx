@@ -5,7 +5,7 @@ import { FieldCard } from "./FieldCard"
 import { ExtractedField } from "@/types";
 import { loadExtractionData } from "@/data/extractions";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
-import { useHighlight } from "@/contexts/HighlightContext";
+import { useHighlightedField, useHighlightSetter } from "@/contexts/HighlightContext";
 
 const FIELDS_STORAGE_PREFIX = 'extracted_fields_';
 
@@ -49,7 +49,8 @@ interface VersionedField extends ExtractedField {
 const FieldList = () => {
     const [fields, setFields] = useState<VersionedField[]>([]);
     const { state } = useSelectionUrlState();
-    const { highlightedField, highlightField } = useHighlight();
+    const highlightedField = useHighlightedField();
+    const highlightField = useHighlightSetter();
 
     // React to context highlight requests
     useEffect(() => {

@@ -1,0 +1,37 @@
+{
+    "submissionId": "sub_19",
+    "title": "Quake SOV 9.16.2024",
+    "extractedFields": [
+        {
+            "id": "Quake SOV 9.16.2024-field-1",
+            "name":"Location Address",
+            "value": "421 N. Sierra Way (Client)",
+            "confidence": 0.95,
+            "fieldType": "text",
+            "provenance": {
+                "docId": "xlsx-quake-sov",
+                "docName": "Quake SOV 9.16.2024.xlsx",
+                "page": 1,
+                "location": "Page 1",
+                "snippet": "Location Address: 421 N. Sierra Way (Client)",
+                "cellRange": ["A1", "A6"]
+            }
+        }, 
+        {
+            "id": "Quake SOV 9.16.2024-field-2",
+            "name":"Construction",
+            "value": "Reinforced Steel moment frame",
+            "confidence": 0.95,
+            "fieldType": "text",
+            "provenance": {
+                "docId": "xlsx-quake-sov",
+                "docName": "Quake SOV 9.16.2024.xlsx",
+                "page": 1,
+                "location": "Page 1",
+                "snippet": "Construction: Reinforced Steel moment frame",
+                "cellRange": ["J1", "J7"]
+            }
+
+        }
+    ]
+}

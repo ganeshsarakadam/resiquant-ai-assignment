@@ -39,11 +39,12 @@ export interface ExtractedField extends Field {
 export interface FieldProvenance {
   docId: string;
   docName: string;
+  documentType: DocumentType;
   page: number;
   location: string;
   snippet: string;
   bbox?: [number, number, number, number]; 
-  cell?: string; 
+  cellRange?: [string, string];
 }
 
 export interface ExtractionData {

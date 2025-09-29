@@ -1,8 +1,9 @@
+
 'use client';
 
-import { Document as DocType } from "@/types";
+import { Document as DocType, ExtractedField } from "@/types";
 import { FileSpreadsheet, Download, RefreshCw } from "lucide-react";
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
 import * as XLSX from 'xlsx-js-style';
 import {
@@ -13,20 +14,104 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from '@/components/ui/carousel';
+import { HighlightOverlay } from './HighlightOverlay';
 
 interface SheetViewerProps {
   document: DocType;
+  extractedFields?: ExtractedField[];
   onReady?: (info: { pageCount: number }) => void;
   onError?: (error: Error) => void;
+  onHighlightClick?: (field: ExtractedField) => void;
 }
 
 interface SheetData {
   name: string;
   data: any[][];
+  colWidths?: number[];
+  rowHeights?: number[];
+  merges?: XLSX.Range[];
 }
 
-// Memoized table to prevent re-renders unless sheet data reference changes
-const SheetTable = ({ sheet }: { sheet: SheetData }) => {
+// Parse cell range (e.g., ["A1", "A2"]) to ExcelCellRange [row, col, rowSpan, colSpan] for end cell only
+const parseCellRange = (cellRange: [string, string]): [number, number, number, number] | null => {
+  try {
+    const [, end] = cellRange; // Use only the end cell (e.g., A2)
+    const { r, c } = XLSX.utils.decode_cell(end);
+    console.log('[SheetViewer] Parsed cell range:', { cellRange, row: r, col: c });
+    return [r, c, 1, 1]; // Single cell: rowSpan=1, colSpan=1
+  } catch (e) {
+    console.warn('[SheetViewer] Invalid cell range:', cellRange, e);
+    return null;
+  }
+};
+
+// Memoized table to prevent re-renders unless sheet data or fields change
+const SheetTable = React.memo(({
+  sheet,
+  extractedFields = [],
+  onHighlightClick
+}: {
+  sheet: SheetData;
+  extractedFields?: ExtractedField[];
+  onHighlightClick?: (field: ExtractedField) => void;
+}) => {
+  // Log re-renders
+  console.log('[SheetTable] Re-rendered with props:', {
+    sheetName: sheet.name,
+    fieldsCount: extractedFields.length,
+    onHighlightClick: onHighlightClick?.toString()
+  });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [cellWidths, setCellWidths] = useState<number[]>([]);
+  const [cellHeights, setCellHeights] = useState<number[]>([]);
+  const [totalTableHeight, setTotalTableHeight] = useState(0);
+  const [totalTableWidth, setTotalTableWidth] = useState(0);
+
+  // Update container size and cell dimensions
+  useEffect(() => {
+    const updateSizes = () => {
+      if (containerRef.current && tableRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        console.log('[SheetTable] Container size updated:', { clientWidth, clientHeight });
+
+        // Measure actual row heights
+        const rows = tableRef.current.querySelectorAll('tr');
+        const newCellHeights = Array.from(rows).map(row => row.getBoundingClientRect().height);
+        const newTotalTableHeight = newCellHeights.reduce((sum, h) => sum + h, 0);
+
+        // Measure actual column widths (first row's <td> elements)
+        const cells = rows[0]?.querySelectorAll('td') || [];
+        const newCellWidths = Array.from(cells).map(cell => cell.getBoundingClientRect().width);
+        const newTotalTableWidth = newCellWidths.reduce((sum, w) => sum + w, 0);
+
+        console.log('[SheetTable] Measured dimensions:', {
+          cellHeights: newCellHeights,
+          cellWidths: newCellWidths,
+          totalTableHeight: newTotalTableHeight,
+          totalTableWidth: newTotalTableWidth
+        });
+
+        setContainerSize({ width: clientWidth, height: clientHeight });
+        setCellWidths(newCellWidths.length > 0 ? newCellWidths : (sheet.colWidths?.map(w => (w || 8) * 7) || Array(sheet.data[0]?.length || 1).fill(80)));
+        setCellHeights(newCellHeights.length > 0 ? newCellHeights : (sheet.rowHeights?.map(h => (h || 20) * 4 / 3) || Array(sheet.data.length).fill(24)));
+        setTotalTableHeight(newTotalTableHeight || newCellHeights.length * 24);
+        setTotalTableWidth(newTotalTableWidth || newCellWidths.length * 80);
+      }
+    };
+
+    updateSizes();
+    window.addEventListener('resize', updateSizes);
+    const observer = new ResizeObserver(updateSizes);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => {
+      window.removeEventListener('resize', updateSizes);
+      if (containerRef.current) observer.unobserve(containerRef.current);
+    };
+  }, [sheet.colWidths, sheet.rowHeights, sheet.data]);
+
   if (!sheet.data.length) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
@@ -34,26 +119,71 @@ const SheetTable = ({ sheet }: { sheet: SheetData }) => {
       </div>
     );
   }
+
   const maxColumns = Math.max(...sheet.data.map(row => row.length));
   const displayData = sheet.data.slice(0, 1000);
+
+  // Convert cellRange to ExcelCellRange [row, col, rowSpan, colSpan]
+  const excelBoxes: [number, number, number, number][] = extractedFields
+    .map((f) => {
+      const cellRange = f.provenance.cellRange;
+      if (!cellRange || !Array.isArray(cellRange) || cellRange.length !== 2) {
+        console.warn('[SheetTable] Missing or invalid cellRange:', f);
+        return null;
+      }
+      const box = parseCellRange(cellRange);
+      if (box && (box[0] >= displayData.length || box[1] >= maxColumns)) {
+        console.warn('[SheetTable] Cell range out of bounds:', { cellRange, row: box[0], col: box[1], maxRows: displayData.length, maxCols: maxColumns });
+        return null;
+      }
+      return box;
+    })
+    .filter((b): b is [number, number, number, number] => !!b);
+
+  // Adjust for merged cells
+  if (sheet.merges) {
+    excelBoxes.forEach((box) => {
+      const [row, col, rowSpan, colSpan] = box;
+      sheet.merges!.forEach(merge => {
+        if (
+          row >= merge.s.r && row <= merge.e.r &&
+          col >= merge.s.c && col <= merge.e.c
+        ) {
+          box[2] = Math.max(rowSpan, merge.e.r - merge.s.r + 1);
+          box[3] = Math.max(colSpan, merge.e.c - merge.s.c + 1);
+          console.log('[SheetTable] Adjusted for merge:', { box, merge });
+        }
+      });
+    });
+  }
+
+  console.log('[SheetTable] Rendering with:', {
+    containerSize,
+    excelBoxes,
+    fieldsCount: extractedFields.length,
+    sheetName: sheet.name,
+    totalTableHeight,
+    totalTableWidth
+  });
+
   return (
-    <div className="h-full overflow-auto bg-white p-4">
+    <div className="h-full overflow-auto bg-white p-4 relative" ref={containerRef}>
       <div className="max-w-full">
-        <table className="border-collapse border border-gray-300 text-sm">
+        <table ref={tableRef} className="border-collapse border border-gray-300 text-sm table-fixed">
           <tbody>
             {displayData.map((row, rowIndex) => (
-              <tr key={rowIndex} onClick={() => {
-                console.log('row', row)
-              }}>
+              <tr key={rowIndex}>
                 {Array.from({ length: maxColumns }, (_, colIndex) => {
                   const cellValue = row[colIndex] || '';
                   return (
-                    <td 
+                    <td
                       key={colIndex}
                       className="border cursor-pointer border-gray-300 px-2 py-1 min-w-[80px] max-w-[200px] break-words"
                       style={{
                         backgroundColor: rowIndex === 0 ? '#f8f9fa' : 'white',
-                        fontWeight: rowIndex === 0 ? 'bold' : 'normal'
+                        fontWeight: rowIndex === 0 ? 'bold' : 'normal',
+                        width: cellWidths[colIndex] ? `${cellWidths[colIndex]}px` : '80px',
+                        height: cellHeights[rowIndex] ? `${cellHeights[rowIndex]}px` : '24px',
                       }}
                     >
                       {String(cellValue)}
@@ -70,9 +200,35 @@ const SheetTable = ({ sheet }: { sheet: SheetData }) => {
           </div>
         )}
       </div>
+      {containerSize.width > 0 && containerSize.height > 0 && excelBoxes.length > 0 && (
+        <HighlightOverlay
+          width={containerSize.width}
+          height={containerSize.height}
+          boxes={excelBoxes}
+          overlayFields={extractedFields}
+          onClickBox={onHighlightClick}
+          documentType="xlsx"
+          cellWidths={cellWidths}
+          cellHeights={cellHeights}
+          columnCount={maxColumns}
+          rowCount={displayData.length}
+          totalTableHeight={totalTableHeight}
+          totalTableWidth={totalTableWidth}
+          opacity={0.25}
+          color="#f59e0b"
+          showLabels={false}
+        />
+      )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for React.memo
+  return (
+    prevProps.sheet === nextProps.sheet &&
+    prevProps.extractedFields === nextProps.extractedFields &&
+    prevProps.onHighlightClick === nextProps.onHighlightClick
+  );
+});
 
 const normalizeCell = (v: any) => String(v ?? '').replace(/[\u00A0\t\r\n]+/g, ' ').trim();
 const splitOnDelimiter = (s: string) => {
@@ -94,7 +250,6 @@ function normalizeSheetToTable(rows: any[][]): any[][] {
     const row = rows[r] || [];
     const cells = row.map(normalizeCell);
     const nonEmptyIdx = cells.map((c, i) => (c ? i : -1)).filter(i => i >= 0);
-    // Drop fully empty rows
     if (nonEmptyIdx.length === 0) {
       r += 1;
       continue;
@@ -120,7 +275,6 @@ function normalizeSheetToTable(rows: any[][]): any[][] {
 
     let matched = false;
 
-    // Single cell "Key: Value"
     if (!matched && nonEmptyIdx.length === 1) {
       const c = cells[nonEmptyIdx[0]];
       const split = splitOnDelimiter(c);
@@ -130,7 +284,6 @@ function normalizeSheetToTable(rows: any[][]): any[][] {
       }
     }
 
-    // Two non-empty cells → [key, value]
     if (!matched && nonEmptyIdx.length === 2) {
       const [i1, i2] = nonEmptyIdx;
       const left = cells[i1];
@@ -145,7 +298,6 @@ function normalizeSheetToTable(rows: any[][]): any[][] {
       }
     }
 
-    // First cell key-like; remainder is value
     if (!matched && nonEmptyIdx.length >= 2) {
       const left = cells[nonEmptyIdx[0]];
       const remainder = nonEmptyIdx.slice(1).map(i => cells[i]).join(' ').trim();
@@ -163,38 +315,34 @@ function normalizeSheetToTable(rows: any[][]): any[][] {
   return out;
 }
 
-const MemoSheetTable = React.memo(SheetTable);
-
-export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProps) => {
+export const SheetViewer = React.memo(({ document: doc, extractedFields = [], onReady, onError, onHighlightClick }: SheetViewerProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // URL state integration
   const { state, setPageNumber } = useSelectionUrlState();
-
-  // Sheets data and navigation
   const [sheets, setSheets] = useState<SheetData[]>([]);
   const [api, setApi] = useState<CarouselApi>();
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Refs to manage initial sync logic
   const hadInitialPageParamRef = useRef<boolean>(state.page != null);
   const firstSelectRef = useRef<boolean>(true);
   const initialAppliedRef = useRef<boolean>(false);
+
+  // Memoize currentSheetFields to prevent reference changes
+  const currentSheetFields = useMemo(
+    () => extractedFields.filter(f => f.provenance?.page === currentIndex + 1),
+    [extractedFields, currentIndex]
+  );
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadWorkbook() {
       try {
-        // console.log('[SheetViewer] start loadWorkbook()', { url: doc.url, hadInitialPage: state.page });
         setIsLoading(true);
         setError(null);
         hadInitialPageParamRef.current = state.page != null;
         firstSelectRef.current = true;
         initialAppliedRef.current = false;
 
-        // Fetch the Excel file
         let buffer: ArrayBuffer;
         if (typeof doc.url === 'string') {
           const response = await fetch(doc.url);
@@ -206,29 +354,28 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
           buffer = await (doc.url as File).arrayBuffer();
         }
 
-        // console.log('[SheetViewer] fetched buffer, parsing with xlsx');
-        
-        // Parse the workbook
         const workbook = XLSX.read(buffer, { type: 'array' });
-        
-        // Extract all sheets
+
         const sheetData: SheetData[] = workbook.SheetNames.map(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
-          // Convert to 2D array with headers
-          const data = XLSX.utils.sheet_to_json(worksheet, { 
-            header: 1, 
-            defval: '', 
-            raw: false 
+          const data = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+            defval: '',
+            raw: false
           }) as any[][];
           const normalizedData = normalizeSheetToTable(data);
-          
+          const colWidths = worksheet['!cols']?.map(col => col.wch || 8);
+          const rowHeights = worksheet['!rows']?.map(row => row.hpt || 20);
+          const merges = worksheet['!merges'];
+
           return {
             name: sheetName,
-            data: data
+            data: data,
+            colWidths,
+            rowHeights,
+            merges,
           };
         });
-
-        // console.log('[SheetViewer] parsed sheets', { count: sheetData.length, names: sheetData.map(s => s.name) });
 
         if (!isMounted) return;
 
@@ -236,22 +383,17 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
         setCurrentIndex(0);
         setIsLoading(false);
 
-        // console.log('[SheetViewer] sheets state set, isLoading=false');
-        
-        // Fire onReady callback
         try {
           onReady?.({ pageCount: sheetData.length });
         } catch (cbErr) {
           console.warn('[SheetViewer] onReady callback error', cbErr);
         }
 
-        // Reinitialize carousel if it exists
         if (api) {
-          try { 
-            api.reInit(); 
-            // console.log('[SheetViewer] api.reInit after sheets set'); 
-          } catch (e) { 
-            console.warn('[SheetViewer] api.reInit failed', e); 
+          try {
+            api.reInit();
+          } catch (e) {
+            console.warn('[SheetViewer] api.reInit failed', e);
           }
         }
 
@@ -262,10 +404,10 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
           setError(e.message);
           setIsLoading(false);
         }
-        try { 
-          onError?.(e); 
-        } catch (cbErr) { 
-          console.warn('[SheetViewer] onError callback error', cbErr); 
+        try {
+          onError?.(e);
+        } catch (cbErr) {
+          console.warn('[SheetViewer] onError callback error', cbErr);
         }
       }
     }
@@ -274,60 +416,48 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
     return () => { isMounted = false; };
   }, [doc.url, onReady, onError]);
 
-  // Reinitialize carousel only when slides (sheets) count changes and api available
   useEffect(() => {
     if (api && sheets.length) {
-      try { api.reInit(); console.log('[SheetViewer] api.reInit after sheets length change'); } catch(e) { console.warn('[SheetViewer] api.reInit failed', e); }
+      try { api.reInit(); } catch (e) { console.warn('[SheetViewer] api.reInit failed', e); }
     }
   }, [api, sheets.length]);
 
-  // Embla select -> update local index (and maybe URL) after initial sync
   useEffect(() => {
     if (!api) return;
     const onSelect = () => {
       const idx = api.selectedScrollSnap();
       setCurrentIndex(idx);
-      const desired = idx + 1; // 1-based
-      
-      // If initial URL param existed and we haven't applied it yet, skip until URL->carousel effect runs
+      const desired = idx + 1;
       if (firstSelectRef.current && hadInitialPageParamRef.current && !initialAppliedRef.current) {
-        // console.log('[SheetViewer] early select ignored pending initial URL scroll');
         return;
       }
       if (firstSelectRef.current) {
-        firstSelectRef.current = false; // consume flag if we reach here
+        firstSelectRef.current = false;
       }
       if (state.page !== desired) {
         setPageNumber(desired);
-        // console.log('[SheetViewer] onSelect -> setPageNumber', { desired });
       }
     };
     api.on('select', onSelect);
     return () => { api.off('select', onSelect); };
   }, [api, setPageNumber, state.page]);
 
-  // URL -> carousel (initial + subsequent external changes)
   useEffect(() => {
-    if (!api) return;
-    if (!sheets.length) return; // need sheets to target
+    if (!api || !sheets.length) return;
     const urlPage = state.page || 1;
     const clamped = Math.min(Math.max(urlPage, 1), sheets.length) - 1;
     const current = api.selectedScrollSnap();
     const needsScroll = current !== clamped || !initialAppliedRef.current;
     if (needsScroll) {
-      const jump = !initialAppliedRef.current; // jump on first application
+      const jump = !initialAppliedRef.current;
       api.scrollTo(clamped, jump);
-      // console.log('[SheetViewer] URL->carousel scrollTo', { urlPage, clamped, jump });
     }
     if (!initialAppliedRef.current) {
       initialAppliedRef.current = true;
-      firstSelectRef.current = false; // we've now applied initial position; allow future selects to update URL
+      firstSelectRef.current = false;
       setCurrentIndex(clamped);
-      // console.log('[SheetViewer] initialAppliedRef set true', { clamped });
       if (state.page !== clamped + 1) {
-        // Normalize URL if it was out of bounds
         setPageNumber(clamped + 1);
-        // console.log('[SheetViewer] normalized out-of-range page param', { newPage: clamped + 1 });
       }
     }
   }, [state.page, api, sheets.length]);
@@ -346,11 +476,8 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
     document.body.removeChild(a);
   }, [doc.url, doc.name]);
 
-  // Removed inline renderSheetTable in favor of MemoSheetTable
-
   return (
     <div className="h-full flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
         <div className="flex items-center gap-2">
           <FileSpreadsheet className="size-4 text-green-600" />
@@ -379,18 +506,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
         </div>
       </div>
 
-      {/* Main viewer */}
       <div className="flex-1 overflow-auto bg-gray-100">
-        {/* Loading / Error overlays */}
-        {/* {isLoading && (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-600">Loading spreadsheet...</p>
-            </div>
-          </div>
-        )} */}
-        
         {error && !isLoading && (
           <div className="w-full h-full flex items-center justify-center p-6 bg-white">
             <div className="max-w-sm text-center">
@@ -408,7 +524,6 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
           </div>
         )}
 
-        {/* Carousel with sheet pages */}
         {!isLoading && !error && sheets.length > 0 && (
           <div className="h-full flex flex-col">
             <div className="flex-1">
@@ -424,22 +539,22 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
                       className="h-full basis-full flex flex-col"
                     >
                       <div className="flex-1 bg-white rounded-lg shadow-sm m-4 overflow-hidden">
-                        {/* Sheet header */}
                         <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                           <h3 className="text-sm font-medium text-gray-700">
                             Sheet: {sheet.name}
-                          </h3>
-                        </div>
-                        {/* Sheet content */}
+                            </h3>
+                          </div>
                         <div className="flex-1 overflow-hidden">
-                          <MemoSheetTable sheet={sheet} />
+                          <SheetTable
+                            sheet={sheet}
+                            extractedFields={currentSheetFields}
+                            onHighlightClick={onHighlightClick}
+                          />
                         </div>
                       </div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-
-                {/* Navigation controls */}
                 {sheets.length > 1 && (
                   <>
                     <CarouselPrevious className="left-2 z-20 cursor-pointer" />
@@ -453,4 +568,12 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
       </div>
     </div>
   );
-};
+}, (prev, next) => {
+  return (
+    prev.document === next.document &&
+    prev.extractedFields === next.extractedFields &&
+    prev.onReady === next.onReady &&
+    prev.onError === next.onError &&
+    prev.onHighlightClick === next.onHighlightClick
+  );
+});

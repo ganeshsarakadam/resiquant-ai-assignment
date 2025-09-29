@@ -1,9 +1,9 @@
+
 'use client'
 
-import { memo, useMemo } from 'react';
-
+import { memo, useMemo, useRef, useEffect } from 'react';
 import { ExtractedField } from '@/types';
-import { useHighlight } from '@/contexts/HighlightContext';
+import { useHighlightedField, useHighlightSetter } from '@/contexts/HighlightContext';
 
 // For PDF/DOCX: normalized bounding boxes [x, y, width, height] as percentages (0-1)
 type NormalizedBBox = [number, number, number, number];
@@ -20,33 +20,51 @@ interface HighlightOverlayProps {
   overlayFields: ExtractedField[];
   onClickBox?: (field: ExtractedField, boxIndex: number) => void;
   documentType: 'pdf' | 'docx' | 'xlsx';
-  cellWidth?: number;
-  cellHeight?: number;
+  cellWidths?: number[];
+  cellHeights?: number[];
   columnCount?: number;
   rowCount?: number;
-  // Optional enhancements
+  totalTableHeight?: number; // Added for full table height
   isActive?: boolean;
   showLabels?: boolean;
+  totalTableWidth?: number;
 }
 
 /**
- * Convert Excel cell coordinates to normalized pixel coordinates
+ * Convert Excel cell coordinates to pixel coordinates
  */
 const excelToPixel = (
   row: number,
   col: number,
   rowSpan: number,
   colSpan: number,
-  cellWidth: number,
-  cellHeight: number,
+  cellWidths: number[],
+  cellHeights: number[],
   containerWidth: number,
-  containerHeight: number
+  totalTableHeight: number // Use full table height
 ): NormalizedBBox => {
-  const x = (col * cellWidth) / containerWidth;
-  const y = (row * cellHeight) / containerHeight;
-  const width = (colSpan * cellWidth) / containerWidth;
-  const height = (rowSpan * cellHeight) / containerHeight;
-  
+  if (containerWidth <= 0 || totalTableHeight <= 0) {
+    console.warn('[HighlightOverlay] Invalid dimensions:', { containerWidth, totalTableHeight });
+    return [0, 0, 0, 0];
+  }
+
+  // Calculate cumulative pixel offsets
+  const x = cellWidths.slice(0, col).reduce((sum, w) => sum + (w || 80), 0) / containerWidth;
+  const y = cellHeights.slice(0, row).reduce((sum, h) => sum + (h || 24), 0) / totalTableHeight;
+  const width = cellWidths.slice(col, col + colSpan).reduce((sum, w) => sum + (w || 80), 0) / containerWidth;
+  const height = cellHeights.slice(row, row + rowSpan).reduce((sum, h) => sum + (h || 24), 0) / totalTableHeight;
+
+  console.log('[HighlightOverlay] Converted cell to pixel:', {
+    row,
+    col,
+    rowSpan,
+    colSpan,
+    x: (x * 100).toFixed(2) + '%',
+    y: (y * 100).toFixed(2) + '%',
+    width: (width * 100).toFixed(2) + '%',
+    height: (height * 100).toFixed(2) + '%'
+  });
+
   return [x, y, width, height];
 };
 
@@ -54,45 +72,79 @@ const excelToPixel = (
  * Validate that a bounding box has valid dimensions
  */
 const validateBox = (box: NormalizedBBox): boolean => {
-  return box.every(val => typeof val === 'number' && val >= 0 && val <= 1);
+  const isValid = box.every(val => typeof val === 'number' && val >= 0 && val <= 1);
+  if (!isValid) {
+    console.warn('[HighlightOverlay] Invalid box filtered:', box);
+  }
+  return isValid;
 };
 
 export const HighlightOverlay = memo(({
-  width,
-  height,
+  width = 0,
+  height = 0,
   boxes,
   color = '#3b82f6',
   opacity = 0.3,
   overlayFields,
   onClickBox,
   documentType,
-  cellWidth = 80,
-  cellHeight = 20,
+  cellWidths = [],
+  cellHeights = [],
   columnCount = 10,
   rowCount = 100,
+  totalTableHeight = 0,
+  totalTableWidth = 0,
   isActive = false,
   showLabels = false
 }: HighlightOverlayProps) => {
-  const { highlightField, highlightedField } = useHighlight();
+  const highlightedField = useHighlightedField();
+  const highlightField = useHighlightSetter();
+  const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Convert & validate boxes. Show ALL boxes for current page; style active one differently.
+  // Sync overlay with table scroll
+  useEffect(() => {
+    const container = overlayRef.current?.parentElement;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (overlayRef.current) {
+        // Use negative scroll offsets to align with scrolled content
+        overlayRef.current.style.transform = `translate(-${container.scrollLeft}px, -${container.scrollTop}px)`;
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial sync
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Convert & validate boxes
   const normalizedBoxes = useMemo(() => {
-    if (!boxes || boxes.length === 0) return [] as NormalizedBBox[];
+    console.log('[HighlightOverlay] Input boxes:', boxes);
+    if (!boxes || boxes.length === 0) {
+      console.log('[HighlightOverlay] No boxes provided');
+      return [] as NormalizedBBox[];
+    }
     if (documentType === 'xlsx') {
       return (boxes as ExcelCellRange[])
-        .map(b => excelToPixel(b[0], b[1], b[2], b[3], cellWidth, cellHeight, width || 0, height || 0))
+        .map((b, i) => {
+          const [row, col, rowSpan, colSpan] = b;
+          if ([row, col, rowSpan, colSpan].every(v => typeof v === 'number')) {
+            return excelToPixel(row, col, rowSpan, colSpan, cellWidths, cellHeights, width, totalTableHeight);
+          }
+          console.warn('[HighlightOverlay] Invalid Excel bbox at index', i, b);
+          return null;
+        })
+        .filter((b): b is NormalizedBBox => !!b)
         .filter(validateBox);
     }
     return (boxes as NormalizedBBox[]).filter(validateBox);
-  }, [boxes, documentType, cellWidth, cellHeight, width, height]);
+  }, [boxes, documentType, cellWidths, cellHeights, width, totalTableHeight]);
 
   const handleBoxClick = (boxIndex: number) => {
     const field = overlayFields[boxIndex];
     if (field) {
-      // Use context to highlight field
       highlightField(field);
-      
-      // Call optional callback if provided
       if (onClickBox) {
         onClickBox(field, boxIndex);
       }
@@ -104,10 +156,7 @@ export const HighlightOverlay = memo(({
       e.preventDefault();
       const field = overlayFields[boxIndex];
       if (field) {
-        // Use context to highlight field
         highlightField(field);
-        
-        // Call optional callback if provided
         if (onClickBox) {
           onClickBox(field, boxIndex);
         }
@@ -115,49 +164,54 @@ export const HighlightOverlay = memo(({
     }
   };
 
-  if (normalizedBoxes.length === 0) return null;
-
   return (
     <div 
-      className="absolute inset-0 pointer-events-auto z-10" 
+      ref={overlayRef}
+      className="absolute inset-0 pointer-events-auto z-10 border border-dashed border-gray-300" 
       style={{ width, height }}
       aria-label={`Highlight overlay for ${overlayFields.length} fields`}
     >
-      {normalizedBoxes.map((box, index) => {
-        const field = overlayFields[index];
-        const isHighlighted = highlightedField?.id === field?.id;
-        const fieldName = field?.name || `Field ${index + 1}`;
-        return (
-          <div
-            key={field?.id || index}
-            className={`absolute cursor-pointer transition-all duration-100 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500
-              ${isHighlighted ? 'ring-2 ring-offset-1 ring-blue-500 ring-opacity-80 border border-blue-300' : 'border border-transparent hover:border-blue-200'}
-            `}
-            style={{
-              left: `${box[0] * 100}%`,
-              top: `${box[1] * 100}%`,
-              width: `${box[2] * 100}%`,
-              height: `${box[3] * 100}%`,
-              backgroundColor: isHighlighted ? color : 'transparent',
-              opacity: isHighlighted ? opacity : 1,
-              boxShadow: isHighlighted ? '0 0 0 2px rgba(59,130,246,0.4), 0 0 4px rgba(0,0,0,0.15)' : 'none'
-            }}
-            onClick={() => handleBoxClick(index)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            tabIndex={0}
-            role="button"
-            aria-pressed={isHighlighted}
-            aria-label={`Highlight for ${fieldName}`}
-            title={`${fieldName}${showLabels ? ` – ${documentType.toUpperCase()}` : ''}`}
-          >
-            {showLabels && (
-              <span className="absolute -top-5 left-0 text-[10px] bg-black/60 text-white px-1 py-0.5 rounded">
-                {fieldName}
-              </span>
-            )}
-          </div>
-        )
-      })}
+      {normalizedBoxes.length === 0 ? (
+        <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
+          No valid highlight boxes
+        </div>
+      ) : (
+        normalizedBoxes.map((box, index) => {
+          const field = overlayFields[index];
+          const isHighlighted = highlightedField?.id === field?.id;
+          const fieldName = field?.name || `Field ${index + 1}`;
+          return (
+            <div
+              key={field?.id || index}
+              className={`absolute cursor-pointer transition-all duration-100 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500
+                ${isHighlighted ? 'ring-2 ring-offset-1 ring-blue-500 ring-opacity-80 border border-blue-300' : 'border border-transparent hover:border-blue-200'}
+              `}
+              style={{
+                left: `${box[0] * 100}%`,
+                top: `${box[1] * 100}%`,
+                width: `${box[2] * 100}%`,
+                height: `${box[3] * 100}%`,
+                backgroundColor: isHighlighted ? color : 'transparent',
+                opacity: isHighlighted ? opacity : 1,
+                boxShadow: isHighlighted ? '0 0 0 2px rgba(59,130,246,0.4), 0 0 4px rgba(0,0,0,0.15)' : 'none'
+              }}
+              onClick={() => handleBoxClick(index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              tabIndex={0}
+              role="button"
+              aria-pressed={isHighlighted}
+              aria-label={`Highlight for ${fieldName}`}
+              title={`${fieldName}${showLabels ? ` – ${documentType.toUpperCase()}` : ''}`}
+            >
+              {showLabels && (
+                <span className="absolute -top-5 left-0 text-[10px] bg-black/60 text-white px-1 py-0.5 rounded">
+                  {fieldName}
+                </span>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 });
