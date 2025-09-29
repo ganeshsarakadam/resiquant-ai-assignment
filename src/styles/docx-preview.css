@@ -8,11 +8,16 @@
 }
 
 .docx {
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  /* background: #fff; */
+  /* box-shadow: 0 2px 12px rgba(0,0,0,0.08); */
 }
 
 /* Prevent pages from exceeding container width; shrink if needed */
 .docx {
   max-width: 100%;
+}
+
+.docx:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }

@@ -12,8 +12,8 @@ type NormalizedBBox = [number, number, number, number];
 type ExcelCellRange = [number, number, number, number];
 
 interface HighlightOverlayProps {
-  width: number;
-  height: number;
+  width: number | undefined;
+  height: number | undefined;
   boxes: NormalizedBBox[] | ExcelCellRange[];
   color?: string;
   opacity?: number;
@@ -80,7 +80,7 @@ export const HighlightOverlay = memo(({
     if (!boxes || boxes.length === 0) return [] as NormalizedBBox[];
     if (documentType === 'xlsx') {
       return (boxes as ExcelCellRange[])
-        .map(b => excelToPixel(b[0], b[1], b[2], b[3], cellWidth, cellHeight, width, height))
+        .map(b => excelToPixel(b[0], b[1], b[2], b[3], cellWidth, cellHeight, width || 0, height || 0))
         .filter(validateBox);
     }
     return (boxes as NormalizedBBox[]).filter(validateBox);

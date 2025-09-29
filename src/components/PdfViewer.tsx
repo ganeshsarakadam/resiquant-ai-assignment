@@ -32,62 +32,66 @@ export interface PdfViewerProps {
   /** When provided, we'll attempt to load extraction JSON at /public/data/extraction_<submissionId>.json */
   submissionId?: string;
   /** Enable/disable overlay globally */
-  showExtractionOverlay?: boolean;
+
   /** Callback when a highlight is clicked */
   onHighlightClick?: (field: ExtractedField) => void;
+  /** Extracted fields to overlay */
+  extractedFields: ExtractedField[];
 }
 
 export const PdfViewer = ({
   document,
+  extractedFields,
   initialPage = 1,
   onDocumentLoadSuccess,
   onDocumentLoadError,
-  showExtractionOverlay = true,
   onHighlightClick,
 }: PdfViewerProps) => {
   const [api, setApi] = useState<CarouselApi>()
   const [numPages, setNumPages] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState<number>(initialPage)
-  const { state } = useSelectionUrlState()
   const [loadedPages, setLoadedPages] = useState<Set<number>>(new Set())
-  const [extraction, setExtraction] = useState<ExtractionData | null>(null)
   const containerRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+
+
 
   
 
-  // Load extraction JSON dynamically based on submissionId
-  useEffect(() => {
-    if (!showExtractionOverlay) {
-      setExtraction(null)
-      return
-    }
-    let cancelled = false
-    const path = `/data/extraction_${state.submissionId}.json`
-    fetch(path)
-      .then(r => {
-        if (!r.ok) throw new Error(`Extraction file not found: ${path}`)
-        return r.json()
-      })
-      .then((data: ExtractionData) => { if (!cancelled) setExtraction(data) })
-      .catch(err => { console.warn('Extraction load failed', err); if (!cancelled) setExtraction(null) })
-    return () => { cancelled = true }
-  }, [state.submissionId, showExtractionOverlay])
+  // // Load extraction JSON dynamically based on submissionId
+  // useEffect(() => {
+  //   if (!showExtractionOverlay) {
+  //     setExtraction(null)
+  //     return
+  //   }
+  //   let cancelled = false
+  //   const path = `/data/extraction_${state.submissionId}.json`
+  //   fetch(path)
+  //     .then(r => {
+  //       if (!r.ok) throw new Error(`Extraction file not found: ${path}`)
+  //       return r.json()
+  //     })
+  //     .then((data: ExtractionData) => { if (!cancelled) setExtraction(data) })
+  //     .catch(err => { console.warn('Extraction load failed', err); if (!cancelled) setExtraction(null) })
+  //   return () => { cancelled = true }
+  // }, [state.submissionId, showExtractionOverlay])
 
 
 
   // Filter extraction fields for this PDF document & page
   const fieldsByPage = useMemo(() => {
-    if (!extraction) return new Map<number, ExtractedField[]>()
+    if (!extractedFields) return new Map<number, ExtractedField[]>()
     const map = new Map<number, ExtractedField[]>()
-    for (const f of extraction.extractedFields) {
+    for (const f of extractedFields) {
+      console.log('f', f, document.name)
       if (f.provenance.docName === document.name && f.provenance.bbox && f.provenance.page) {
         const arr = map.get(f.provenance.page) || []
         arr.push(f)
         map.set(f.provenance.page, arr)
       }
     }
+    console.log('map', map)
     return map
-  }, [extraction, document.name])
+  }, [extractedFields, document.name])
 
   const handleDocSuccess = (pdf: any) => {
     setNumPages(pdf.numPages)
@@ -196,6 +200,7 @@ useEffect(() => {
               const pageNumber = i + 1
               const pageLoaded = loadedPages.has(pageNumber)
               const pageFields = fieldsByPage.get(pageNumber) || []
+              console.log('pageFields', pageFields)
               return (
                 <CarouselItem key={pageNumber} className="h-full flex items-center justify-center bg-gray-100">
                   <div
@@ -211,7 +216,7 @@ useEffect(() => {
                       onLoadSuccess={() => markPageLoaded(pageNumber)}
                       onLoadError={(e: any) => console.error('Page load error', pageNumber, e)}
                     />
-                    {showExtractionOverlay && pageFields.length > 0 && (
+                    {pageFields.length > 0 && (
                       <HighlightOverlay
                         width={containerRefs.current.get(pageNumber)?.clientWidth || 0}
                         height={containerRefs.current.get(pageNumber)?.clientHeight || 0}

@@ -59,6 +59,12 @@ export const document_map: DocumentMap = {
         type: "xlsx",
         url: createDocUrl("sub_7", "8010 Remmet Ave LLC - SOV - 2024.xls")
     },
+    "xlsx-test-srv": {
+        name: "test-srv.xlsx",
+        id: "xlsx-test-srv",
+        type: "xlsx",
+        url: createDocUrl("sub_7", "test-srv.xlsx")
+    },
     "pdf-mail-remmet": {
         name: "Mail - Francisco Galvis - Outlook.pdf",
         id: "pdf-mail-remmet",

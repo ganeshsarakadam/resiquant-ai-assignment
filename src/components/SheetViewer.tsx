@@ -42,13 +42,15 @@ const SheetTable = ({ sheet }: { sheet: SheetData }) => {
         <table className="border-collapse border border-gray-300 text-sm">
           <tbody>
             {displayData.map((row, rowIndex) => (
-              <tr key={rowIndex}>
+              <tr key={rowIndex} onClick={() => {
+                console.log('row', row)
+              }}>
                 {Array.from({ length: maxColumns }, (_, colIndex) => {
                   const cellValue = row[colIndex] || '';
                   return (
-                    <td
+                    <td 
                       key={colIndex}
-                      className="border border-gray-300 px-2 py-1 min-w-[80px] max-w-[200px] break-words"
+                      className="border cursor-pointer border-gray-300 px-2 py-1 min-w-[80px] max-w-[200px] break-words"
                       style={{
                         backgroundColor: rowIndex === 0 ? '#f8f9fa' : 'white',
                         fontWeight: rowIndex === 0 ? 'bold' : 'normal'
@@ -71,6 +73,95 @@ const SheetTable = ({ sheet }: { sheet: SheetData }) => {
     </div>
   );
 };
+
+const normalizeCell = (v: any) => String(v ?? '').replace(/[\u00A0\t\r\n]+/g, ' ').trim();
+const splitOnDelimiter = (s: string) => {
+  const i = s.indexOf(':');
+  if (i > 0 && i < s.length - 1) {
+    const left = normalizeCell(s.slice(0, i));
+    const right = normalizeCell(s.slice(i + 1));
+    if (left && right) return { key: left, value: right };
+  }
+  return null;
+};
+const isKeyLike = (s: string) => !!s && s.length <= 60 && /[A-Za-z]/.test(s) && !/^\d+$/.test(s);
+const isValueLike = (s: string) => !!s && (s.length > 2 || /[@:/\\]|^[$€£]?\s*[+-]?(\d{1,3}(,\d{3})*|\d+)(\.\d+)?\s*(%|USD|EUR|GBP)?$/i.test(s));
+
+function normalizeSheetToTable(rows: any[][]): any[][] {
+  const out: any[][] = [];
+  let r = 0;
+  while (r < rows.length) {
+    const row = rows[r] || [];
+    const cells = row.map(normalizeCell);
+    const nonEmptyIdx = cells.map((c, i) => (c ? i : -1)).filter(i => i >= 0);
+    // Drop fully empty rows
+    if (nonEmptyIdx.length === 0) {
+      r += 1;
+      continue;
+    }
+
+    const emitWithContinuations = (pair: [string, string]) => {
+      let value = pair[1];
+      let rr = r + 1;
+      while (rr < rows.length) {
+        const next = (rows[rr] || []).map(normalizeCell);
+        const nextNonEmpty = next.filter(Boolean);
+        if (nextNonEmpty.length === 0) break;
+        if (!next[0] && nextNonEmpty.length >= 1) {
+          value += '\n' + nextNonEmpty.join(' ');
+          rr += 1;
+          continue;
+        }
+        break;
+      }
+      out.push([pair[0], value]);
+      r = rr;
+    };
+
+    let matched = false;
+
+    // Single cell "Key: Value"
+    if (!matched && nonEmptyIdx.length === 1) {
+      const c = cells[nonEmptyIdx[0]];
+      const split = splitOnDelimiter(c);
+      if (split && isKeyLike(split.key) && isValueLike(split.value)) {
+        emitWithContinuations([split.key, split.value]);
+        matched = true;
+      }
+    }
+
+    // Two non-empty cells → [key, value]
+    if (!matched && nonEmptyIdx.length === 2) {
+      const [i1, i2] = nonEmptyIdx;
+      const left = cells[i1];
+      const right = cells[i2];
+      const split = splitOnDelimiter(left);
+      if (split && isKeyLike(split.key) && isValueLike(split.value || right)) {
+        out.push([split.key, split.value || right]);
+        r += 1; matched = true;
+      } else if (isKeyLike(left) && isValueLike(right)) {
+        out.push([left, right]);
+        r += 1; matched = true;
+      }
+    }
+
+    // First cell key-like; remainder is value
+    if (!matched && nonEmptyIdx.length >= 2) {
+      const left = cells[nonEmptyIdx[0]];
+      const remainder = nonEmptyIdx.slice(1).map(i => cells[i]).join(' ').trim();
+      if (isKeyLike(left) && isValueLike(remainder)) {
+        out.push([left, remainder]);
+        r += 1; matched = true;
+      }
+    }
+
+    if (!matched) {
+      out.push(cells);
+      r += 1;
+    }
+  }
+  return out;
+}
 
 const MemoSheetTable = React.memo(SheetTable);
 
@@ -129,6 +220,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
             defval: '', 
             raw: false 
           }) as any[][];
+          const normalizedData = normalizeSheetToTable(data);
           
           return {
             name: sheetName,

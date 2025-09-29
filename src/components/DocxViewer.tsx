@@ -1,8 +1,8 @@
 'use client';
 
-import { Document as DocType } from "@/types";
+import { Document as DocType, ExtractedField } from "@/types";
 import { File, Download, RefreshCw } from "lucide-react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { renderAsync } from "docx-preview";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
 import {
@@ -13,6 +13,8 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { HighlightOverlay } from "./HighlightOverlay";
+import "@/styles/docx-preview.css";
 
 
 /**
@@ -53,7 +55,7 @@ function PageMount({ node }: { node: HTMLElement }) {
       if (host.contains(node)) host.removeChild(node);
     };
   }, [node]);
-  return <div ref={hostRef} className="flex justify-center" />;
+  return <div ref={hostRef} className="w-full" />;
 }
 
 
@@ -65,6 +67,8 @@ interface DocxViewerProps {
   onReady?: (info: { pageCount: number }) => void;
   onError?: (error: Error) => void;
   onPageChange?: (page: number) => void;
+  extractedFields: ExtractedField[];
+  onHighlightClick?: (field: ExtractedField) => void;
 }
 
 /**
@@ -77,13 +81,14 @@ interface DocxViewerProps {
  * @returns docx viewer
  */
 
-export const DocxViewer = ({ document: doc, initialPage = 1, onReady, onError, onPageChange }: DocxViewerProps) => {
+export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields,onReady, onError, onPageChange, onHighlightClick }: DocxViewerProps) => {
   const [error, setError] = useState<string | null>(null);
   const { state, setPageNumber } = useSelectionUrlState();
 
   /**
    * hidden staging container where docx-preview renders initially
    */
+  // console.log('extractedFields', extractedFields)
   const stagingRef = useRef<HTMLDivElement>(null);
 
   const [pages, setPages] = useState<HTMLElement[]>([]);
@@ -190,6 +195,19 @@ export const DocxViewer = ({ document: doc, initialPage = 1, onReady, onError, o
     run();
     return () => { isMounted = false; };
   }, [doc.url]);
+
+  const fieldsByPage = useMemo(() => {
+    if (!extractedFields) return new Map<number, ExtractedField[]>()
+    const map = new Map<number, ExtractedField[]>()
+    for (const f of extractedFields) {
+      if (f.provenance.docName === doc.name && f.provenance.bbox && f.provenance.page) {
+        const arr = map.get(f.provenance.page) || []
+        arr.push(f)
+        map.set(f.provenance.page, arr)
+      }
+    }
+    return map
+  }, [extractedFields, doc.name])
 
  /**
   * This is the onSelect callback for the carousel
@@ -311,14 +329,38 @@ export const DocxViewer = ({ document: doc, initialPage = 1, onReady, onError, o
                 opts={{ align: "center", loop: false, skipSnaps: false, dragFree: false }}
               >
                 <CarouselContent className="h-full">
-                  {pages.map((node: HTMLElement, idx: number) => (
+                  {pages.map((node: HTMLElement, idx: number) => {
+                    const pageFields = fieldsByPage.get(idx + 1) || []
+                    // console.log('pageFields', pageFields)
+                    return (
                     <CarouselItem
                       key={idx}
-                      className="h-full basis-full flex items-start justify-center p-4"
+                      className="h-full basis-full flex items-start justify-center py-1 px-4 relative overflow-y-auto"
                     >
-                      <PageMount node={node} />
+                      <div className="relative">
+                        <PageMount node={node} />
+                        {pageFields.length > 0 && (
+                          <HighlightOverlay
+                            width={node.getBoundingClientRect().width || 800}
+                            height={node.getBoundingClientRect().height || 1000}
+                            boxes={pageFields.map((f: ExtractedField) => f.provenance.bbox!).filter(Boolean)}
+                            overlayFields={pageFields}
+                            onClickBox={(field: ExtractedField, boxIndex: number) => {
+                              console.log('Clicked field:', field); 
+                              console.log('Box index:', boxIndex);
+                              if (onHighlightClick) {
+                                onHighlightClick(field);
+                              }
+                            }}
+                            documentType="docx"
+                            opacity={0.25}
+                            color="#f59e0b"
+                            showLabels={false}
+                          />
+                        )}
+                      </div>
                     </CarouselItem>
-                  ))}
+                  )})}
                 </CarouselContent>
 
                 {/* overlay controls */}
@@ -330,8 +372,6 @@ export const DocxViewer = ({ document: doc, initialPage = 1, onReady, onError, o
                     </>
                   )
                 }
-
-
               </Carousel>
             </div>
           </div>

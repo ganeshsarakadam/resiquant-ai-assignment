@@ -91,6 +91,12 @@ export const submissions: Submission[] = [
                 name: "Resiquant Mail - FW_ 8010 REMMET AVE LLC - Eff. 10-30-24.pdf",
                 type: "pdf",
                 url: createDocUrl("sub_7", "Resiquant Mail - FW_ 8010 REMMET AVE LLC - Eff. 10-30-24.pdf")
+            }, 
+            {
+                id:"xlsx-test-srv",
+                name: "test-srv.xlsx",
+                type: "xlsx",
+                url: createDocUrl("sub_7", "test-srv.xlsx")
             }
         ]
     },

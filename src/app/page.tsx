@@ -8,6 +8,7 @@ import { HighlightProvider } from "@/contexts/HighlightContext";
 import SubmissionSelector from "@/components/SubmissionSelector";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
+import { ExtractionData } from "@/types";
 import {
   Sheet,
   SheetContent,
@@ -16,12 +17,16 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { PanelLeftOpen } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { loadExtraction } from "@/lib/utils";
 
 export default function Home() {
   const [menuCollapsed, setMenuCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { setDocumentAndPage } = useSelectionUrlState();
+
+
+
   
 
   return (
@@ -88,7 +93,7 @@ export default function Home() {
                 className="min-w-0"
               >
                 <div className="h-full bg-white min-h-0 overflow-hidden">
-                  <DocumentViewer />
+                  <DocumentViewer  />
                 </div>
               </ResizablePanel>
               <ResizableHandle withHandle />

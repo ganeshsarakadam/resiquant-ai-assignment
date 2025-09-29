@@ -3,7 +3,7 @@
     "title": "8010 Remmet Ave LLC",
     "extractedFields": [
       {
-        "id": "field-1",
+        "id": "field-1-docx-coverage-summary",
         "name": "Name Insured",
         "value": "8010 Remmet Avenue, LLC, EIMAX, LLC, Michael B. Bushman",
         "confidence": 0.95,
@@ -14,10 +14,26 @@
           "page": 1,
           "location": "Page 1",
           "snippet": "Name Insured: 8010 Remmet Avenue, LLC, EIMAX, LLC, Michael B. Bushman",
-          "bbox": [0.07, 0.12, 0.55, 0.05]
+          "bbox": [0.07, 0.10, 0.57, 0.05]
         }
-      }, {
-        "id": "field-2",
+      },
+      {
+        "id": "field-2-docx-coverage-summary",
+        "name":"Mail Address",
+        "value": "22907 Collins St. Woodland Hills, CA 91367" ,
+        "confidence": 0.95,
+        "fieldType": "text",
+        "provenance": {
+          "docId": "docx-coverage-summary",
+          "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
+          "page": 1,
+          "location": "Page 1",
+          "snippet": "Mail Address: 22907 Collins St. Woodland Hills, CA 91367",
+          "bbox": [0.07, 0.15, 0.73, 0.03]
+        }
+      },
+      {
+        "id": "field-3-docx-coverage-summary",
         "name":"Description",
         "value": "Commercial Property Owner -Warehouse Light Industrial",
         "confidence": 0.95,
@@ -28,7 +44,36 @@
           "page": 1,
           "location": "Page 1",
           "snippet": "Description: Commercial Property Owner -Warehouse Light Industrial",
-          "bbox": [0.07, 0.22, 0.67, 0.03]
+          "bbox": [0.07, 0.19, 0.73, 0.03]
+        }
+      }, 
+      {
+        "id": "field-4-docx-coverage-summary",
+        "name":"Prepared By",
+        "value": "Mike Barschig",
+        "confidence": 0.95,
+        "fieldType": "text",
+        "provenance": {
+          "docId": "docx-coverage-summary",
+          "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
+          "page": 1,
+          "location": "Page 1",
+          "snippet": "Prepared By: Mike Barschig",
+          "bbox": [0.07, 0.94, 0.73, 0.03]
+        }
+      }, {
+        "id": "field-5-pdf-remmet-bushman-prop",
+        "name": "APC DRIVE, GATES",
+        "value": "200,000",
+        "confidence": 0.95,
+        "fieldType": "number",
+        "provenance": {
+          "docId": "pdf-remmet-bushman-prop",
+          "docName": "Remmet Bushman Prop.pdf",
+          "page": 1,
+          "location": "Page 1",
+          "snippet": "APC DRIVE, GATES: 200,000",
+          "bbox": [0.04, 0.28, 0.30, 0.02]
         }
       }
     ],

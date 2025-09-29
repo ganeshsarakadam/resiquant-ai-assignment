@@ -11,6 +11,8 @@ import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
 import { useHighlight } from "@/contexts/HighlightContext"
+import { ExtractedField } from "@/types"
+import { loadExtraction } from "@/lib/utils"
 
 interface DocumentViewerProps {
     onFieldHighlight?: (id: string) => void;
@@ -21,12 +23,25 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const { highlightedField, highlightField } = useHighlight();
     const [numPages, setNumPages] = useState<number>(0);
     const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
+    const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
+
+    useEffect(() => {
+        // console.log('state.submissionId', state.submissionId)
+        const fetchExtraction = async () => {
+            const extraction = await loadExtraction(state.submissionId);
+            console.log('extraction', extraction)
+            setExtractedFields(extraction?.extractedFields || []);
+        };
+        fetchExtraction();
+    }, [state.submissionId]);
 
     /**
      * This function can be easily extended to support documents on cloud storage systems
      * such as S3BlobStorage, Azure Blob Storage, etc.
      */
     const document = getDocumentById(state.documentId);
+
+    
 
 
     /**
@@ -103,12 +118,12 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             case 'pdf':
                                 return (
                                     <PdfViewer
+                                        extractedFields={extractedFields}   
                                         document={document}
                                         initialPage={state.page || 1}
                                         onDocumentLoadSuccess={onDocumentLoadSuccess}
                                         onDocumentLoadError={onDocumentLoadError}
                                         submissionId={state.submissionId}
-                                        showExtractionOverlay={true}
                                         onHighlightClick={(field) => {
                                             if (!field) return;
                                             // Use context to highlight field - it will handle document selection automatically
@@ -122,7 +137,12 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             case 'xlsx':
                 return <SheetViewer document={document} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
             case 'docx':
-                return <DocxViewer document={document} initialPage={state.page || 1} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
+                return <DocxViewer  document={document}  onHighlightClick={(field) => {
+                    if (!field) return;
+                    // Use context to highlight field - it will handle document selection automatically
+                    highlightField(field);
+                    onFieldHighlight?.(field.id);
+                }}  extractedFields={extractedFields} initialPage={state.page || 1}  onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
             case 'eml':
                 return <EmailViewer document={document} />;
             default:
