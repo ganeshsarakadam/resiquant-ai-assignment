@@ -69,6 +69,7 @@ const SheetTable = React.memo(({
   const [cellHeights, setCellHeights] = useState<number[]>([]);
   const [totalTableHeight, setTotalTableHeight] = useState(0);
   const [totalTableWidth, setTotalTableWidth] = useState(0);
+  const [containerPadding, setContainerPadding] = useState({ left: 0, top: 0 });
 
   // Update container size and cell dimensions
   useEffect(() => {
@@ -93,6 +94,12 @@ const SheetTable = React.memo(({
           totalTableHeight: newTotalTableHeight,
           totalTableWidth: newTotalTableWidth
         });
+
+        // Capture padding offset so overlay can align to table (table starts after padding)
+        const style = window.getComputedStyle(containerRef.current);
+        const paddingLeft = parseFloat(style.paddingLeft) || 0;
+        const paddingTop = parseFloat(style.paddingTop) || 0;
+        setContainerPadding({ left: paddingLeft, top: paddingTop });
 
         setContainerSize({ width: clientWidth, height: clientHeight });
         setCellWidths(newCellWidths.length > 0 ? newCellWidths : (sheet.colWidths?.map(w => (w || 8) * 7) || Array(sheet.data[0]?.length || 1).fill(80)));
@@ -202,8 +209,8 @@ const SheetTable = React.memo(({
       </div>
       {containerSize.width > 0 && containerSize.height > 0 && excelBoxes.length > 0 && (
         <HighlightOverlay
-          width={containerSize.width}
-          height={containerSize.height}
+          width={totalTableWidth || containerSize.width}
+          height={totalTableHeight || containerSize.height}
           boxes={excelBoxes}
           overlayFields={extractedFields}
           onClickBox={onHighlightClick}
@@ -214,6 +221,8 @@ const SheetTable = React.memo(({
           rowCount={displayData.length}
           totalTableHeight={totalTableHeight}
           totalTableWidth={totalTableWidth}
+          offsetX={containerPadding.left}
+            offsetY={containerPadding.top}
           opacity={0.25}
           color="#f59e0b"
           showLabels={false}
@@ -506,7 +515,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-gray-100">
+      <div className="flex-1 overflow-hidden bg-gray-100">
         {error && !isLoading && (
           <div className="w-full h-full flex items-center justify-center p-6 bg-white">
             <div className="max-w-sm text-center">

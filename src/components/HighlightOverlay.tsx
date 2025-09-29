@@ -28,10 +28,14 @@ interface HighlightOverlayProps {
   isActive?: boolean;
   showLabels?: boolean;
   totalTableWidth?: number;
+  offsetX?: number; // left offset (e.g., container padding)
+  offsetY?: number; // top offset
 }
 
 /**
- * Convert Excel cell coordinates to pixel coordinates
+ * Convert Excel cell coordinates to normalized (0-1) box relative to the FULL table dimensions
+ * (not just the visible scroll container). This ensures highlight boxes align exactly with cell
+ * boundaries even when horizontally/vertically scrolled.
  */
 const excelToPixel = (
   row: number,
@@ -40,29 +44,31 @@ const excelToPixel = (
   colSpan: number,
   cellWidths: number[],
   cellHeights: number[],
-  containerWidth: number,
-  totalTableHeight: number // Use full table height
+  totalTableWidth: number,
+  totalTableHeight: number
 ): NormalizedBBox => {
-  if (containerWidth <= 0 || totalTableHeight <= 0) {
-    console.warn('[HighlightOverlay] Invalid dimensions:', { containerWidth, totalTableHeight });
+  if (totalTableWidth <= 0 || totalTableHeight <= 0) {
+    console.warn('[HighlightOverlay] Invalid table dimensions:', { totalTableWidth, totalTableHeight });
     return [0, 0, 0, 0];
   }
 
-  // Calculate cumulative pixel offsets
-  const x = cellWidths.slice(0, col).reduce((sum, w) => sum + (w || 80), 0) / containerWidth;
-  const y = cellHeights.slice(0, row).reduce((sum, h) => sum + (h || 24), 0) / totalTableHeight;
-  const width = cellWidths.slice(col, col + colSpan).reduce((sum, w) => sum + (w || 80), 0) / containerWidth;
-  const height = cellHeights.slice(row, row + rowSpan).reduce((sum, h) => sum + (h || 24), 0) / totalTableHeight;
+  const xOffsetPx = cellWidths.slice(0, col).reduce((sum, w) => sum + (w || 80), 0);
+  const yOffsetPx = cellHeights.slice(0, row).reduce((sum, h) => sum + (h || 24), 0);
+  const cellWidthPx = cellWidths.slice(col, col + colSpan).reduce((sum, w) => sum + (w || 80), 0);
+  const cellHeightPx = cellHeights.slice(row, row + rowSpan).reduce((sum, h) => sum + (h || 24), 0);
 
-  console.log('[HighlightOverlay] Converted cell to pixel:', {
-    row,
-    col,
-    rowSpan,
-    colSpan,
-    x: (x * 100).toFixed(2) + '%',
-    y: (y * 100).toFixed(2) + '%',
-    width: (width * 100).toFixed(2) + '%',
-    height: (height * 100).toFixed(2) + '%'
+  const x = xOffsetPx / totalTableWidth;
+  const y = yOffsetPx / totalTableHeight;
+  const width = cellWidthPx / totalTableWidth;
+  const height = cellHeightPx / totalTableHeight;
+
+  // Debug trace (can be removed or gated later)
+  console.log('[HighlightOverlay] Excel cell normalized:', {
+    row, col, rowSpan, colSpan,
+    xPct: (x * 100).toFixed(2) + '%',
+    yPct: (y * 100).toFixed(2) + '%',
+    wPct: (width * 100).toFixed(2) + '%',
+    hPct: (height * 100).toFixed(2) + '%'
   });
 
   return [x, y, width, height];
@@ -95,7 +101,9 @@ export const HighlightOverlay = memo(({
   totalTableHeight = 0,
   totalTableWidth = 0,
   isActive = false,
-  showLabels = false
+  showLabels = false,
+  offsetX = 0,
+  offsetY = 0
 }: HighlightOverlayProps) => {
   const highlightedField = useHighlightedField();
   const highlightField = useHighlightSetter();
@@ -126,11 +134,13 @@ export const HighlightOverlay = memo(({
       return [] as NormalizedBBox[];
     }
     if (documentType === 'xlsx') {
+      const tableWidth = totalTableWidth || cellWidths.reduce((s, w) => s + (w || 80), 0);
+      const tableHeight = totalTableHeight || cellHeights.reduce((s, h) => s + (h || 24), 0);
       return (boxes as ExcelCellRange[])
         .map((b, i) => {
           const [row, col, rowSpan, colSpan] = b;
           if ([row, col, rowSpan, colSpan].every(v => typeof v === 'number')) {
-            return excelToPixel(row, col, rowSpan, colSpan, cellWidths, cellHeights, width, totalTableHeight);
+            return excelToPixel(row, col, rowSpan, colSpan, cellWidths, cellHeights, tableWidth, tableHeight);
           }
           console.warn('[HighlightOverlay] Invalid Excel bbox at index', i, b);
           return null;
@@ -139,7 +149,7 @@ export const HighlightOverlay = memo(({
         .filter(validateBox);
     }
     return (boxes as NormalizedBBox[]).filter(validateBox);
-  }, [boxes, documentType, cellWidths, cellHeights, width, totalTableHeight]);
+  }, [boxes, documentType, cellWidths, cellHeights, totalTableWidth, totalTableHeight]);
 
   const handleBoxClick = (boxIndex: number) => {
     const field = overlayFields[boxIndex];
@@ -164,11 +174,15 @@ export const HighlightOverlay = memo(({
     }
   };
 
+  // For xlsx we want overlay sized to full table dimensions so percentage math is accurate.
+  const overlayWidth = documentType === 'xlsx' && totalTableWidth ? totalTableWidth : width;
+  const overlayHeight = documentType === 'xlsx' && totalTableHeight ? totalTableHeight : height;
+
   return (
-    <div 
+    <div
       ref={overlayRef}
-      className="absolute inset-0 pointer-events-auto z-10 border border-dashed border-gray-300" 
-      style={{ width, height }}
+      className="absolute pointer-events-auto z-10 border border-dashed border-gray-300"
+      style={{ width: overlayWidth, height: overlayHeight, left: offsetX, top: offsetY }}
       aria-label={`Highlight overlay for ${overlayFields.length} fields`}
     >
       {normalizedBoxes.length === 0 ? (
