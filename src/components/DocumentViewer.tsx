@@ -26,10 +26,8 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
 
     useEffect(() => {
-        // console.log('state.submissionId', state.submissionId)
         const fetchExtraction = async () => {
             const extraction = await loadExtraction(state.submissionId);
-            console.log('extraction', extraction)
             setExtractedFields(extraction?.extractedFields || []);
         };
         fetchExtraction();
@@ -40,9 +38,6 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      * such as S3BlobStorage, Azure Blob Storage, etc.
      */
     const document = getDocumentById(state.documentId);
-
-    
-
 
     /**
      * On document load success, we set the number of pages and the loading state to false
@@ -76,17 +71,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
         setIsDocumentLoadingInProgress(true);
     }, [document]);
 
-    /**
-     * Listen for page changes from context (when field provenance is clicked)
-     */
-    // useEffect(() => {
-    //     if (highlightedField?.provenance?.page && document) {
-    //         const pageNumber = highlightedField.provenance.page;
-    //         console.log('DocumentViewer: Navigating to page', pageNumber);
-    //         setPageNumber(pageNumber);
-    //         setCurrentPage(pageNumber - 1);
-    //     }
-    // }, [highlightedField, document, setPageNumber]);
+
 
 
     /**
@@ -129,6 +114,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
                             highlightField(field);
                             onFieldHighlight?.(field.id);
                         }}
+                        onPageChange={(p:number) => { if (p !== state.page) setPageNumber(p); }}
                     />
                 );
             case 'image':
@@ -158,6 +144,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
                         }}
                         extractedFields={extractedFields}
                         initialPage={state.page || 1}
+                        onPageChange={(p:number) => { if (p !== state.page) setPageNumber(p); }}
                         onReady={() => { setIsDocumentLoadingInProgress(false); }}
                         onError={() => { setIsDocumentLoadingInProgress(false); }}
                     />
@@ -188,18 +175,6 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             <div className="px-4 py-2 border-b bg-white">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-medium">Document Viewer</h2>
-                    {/* <div className="flex items-center gap-4">
-                        {document && document.type === 'pdf' && (
-                            <span className="text-xs text-gray-500">
-                                Page {currentPage + 1} of {numPages || '?'}
-                            </span>
-                        )}
-                        {document && (
-                            <span className="text-xs text-gray-500 capitalize">
-                                {document.type.toUpperCase()} Document
-                            </span>
-                        )}
-                    </div> */}
                 </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto relative">

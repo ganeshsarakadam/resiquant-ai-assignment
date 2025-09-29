@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Document as DocType } from '@/types'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel'
-import { PdfPageSkeleton } from './Skeletons/PdfPageSkeleton'
 import { HighlightOverlay } from './HighlightOverlay'
-import type { ExtractionData, ExtractedField } from '@/types'
-import { useSelectionUrlState } from '@/hooks/useSelectionUrlState'
-import { Download, RefreshCw, File, FileText } from 'lucide-react'
+import type { ExtractedField } from '@/types'
+import { Download, RefreshCw, FileText } from 'lucide-react'
 
-
-// Dynamically import react-pdf components and setup to avoid SSR issues
+/**
+ * Dynamically import react-pdf components and setup to avoid SSR issues
+ * @returns Document component from react-pdf 
+ */
 const Document = dynamic(
   () => import('react-pdf').then(async (mod) => {
     // Ensure PDF.js setup is loaded
@@ -21,7 +21,12 @@ const Document = dynamic(
   { ssr: false }
 );
 
+/**
+ * Dynamically import Page component from react-pdf
+ * @returns Page component from react-pdf
+ */
 const Page = dynamic(() => import('react-pdf').then(mod => ({ default: mod.Page })), { ssr: false });
+
 
 export interface PdfViewerProps {
   document: DocType;
@@ -29,14 +34,10 @@ export interface PdfViewerProps {
   onDocumentLoadSuccess?: (pdf: any) => void;
   onDocumentLoadError?: (error: Error) => void;
   onDocumentLoadProgress?: (ratio: number) => void;
-  /** When provided, we'll attempt to load extraction JSON at /public/data/extraction_<submissionId>.json */
   submissionId?: string;
-  /** Enable/disable overlay globally */
-
-  /** Callback when a highlight is clicked */
   onHighlightClick?: (field: ExtractedField) => void;
-  /** Extracted fields to overlay */
   extractedFields: ExtractedField[];
+  onPageChange?: (page: number) => void;
 }
 
 export const PdfViewer = ({
@@ -46,53 +47,38 @@ export const PdfViewer = ({
   onDocumentLoadSuccess,
   onDocumentLoadError,
   onHighlightClick,
-}: PdfViewerProps) => {
+  onPageChange,
+}: PdfViewerProps) => { 
   const [api, setApi] = useState<CarouselApi>()
   const [numPages, setNumPages] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState<number>(initialPage)
-  const [loadedPages, setLoadedPages] = useState<Set<number>>(new Set())
   const containerRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
 
-console.log("pdf viewer rerendered")
-  
-
-  // // Load extraction JSON dynamically based on submissionId
-  // useEffect(() => {
-  //   if (!showExtractionOverlay) {
-  //     setExtraction(null)
-  //     return
-  //   }
-  //   let cancelled = false
-  //   const path = `/data/extraction_${state.submissionId}.json`
-  //   fetch(path)
-  //     .then(r => {
-  //       if (!r.ok) throw new Error(`Extraction file not found: ${path}`)
-  //       return r.json()
-  //     })
-  //     .then((data: ExtractionData) => { if (!cancelled) setExtraction(data) })
-  //     .catch(err => { console.warn('Extraction load failed', err); if (!cancelled) setExtraction(null) })
-  //   return () => { cancelled = true }
-  // }, [state.submissionId, showExtractionOverlay])
-
-
-
-  // Filter extraction fields for this PDF document & page
+ /**
+  * Memoize fields by page
+  * @returns Map of page with extracted fields linked to the page
+  * @description This is the fieldsByPage function that memoizes the fields by page
+  */
   const fieldsByPage = useMemo(() => {
     if (!extractedFields) return new Map<number, ExtractedField[]>()
     const map = new Map<number, ExtractedField[]>()
-    for (const f of extractedFields) {
-      console.log('f', f, document.name)
-      if (f.provenance.docName === document.name && f.provenance.bbox && f.provenance.page) {
-        const arr = map.get(f.provenance.page) || []
-        arr.push(f)
-        map.set(f.provenance.page, arr)
+    for (const field of extractedFields) {
+      if (field.provenance.docName === document.name && field.provenance.bbox && field.provenance.page) {
+        const arr = map.get(field.provenance.page) || []
+        arr.push(field)
+        map.set(field.provenance.page, arr)
       }
     }
-    console.log('map', map)
     return map
   }, [extractedFields, document.name])
 
+
+/**
+ * On document load success, we set the number of pages and the current page
+ * @param pdf 
+ * @description This is the handleDocSuccess function that handles the document load success
+ */
   const handleDocSuccess = (pdf: any) => {
     setNumPages(pdf.numPages)
     setCurrentPage(initialPage)
@@ -102,41 +88,48 @@ console.log("pdf viewer rerendered")
     }
   }
 
+/**
+ * On document load error, we set the error
+ * @param err 
+ * @description This is the handleDocError function that handles the document load error
+ */
   const handleDocError = (err: Error) => {
     onDocumentLoadError?.(err)
   }
 
 
-
-  const markPageLoaded = useCallback((pageNumber: number) => {
-    setLoadedPages((prev: Set<number>) => {
-      if (prev.has(pageNumber)) return prev
-      const next = new Set(prev)
-      next.add(pageNumber)
-      return next
-    })
-  }, [])
-
+/**
+ * On page change, we set the current page and the page number
+ * @param api 
+ * @param currentPage 
+ * @param onPageChange 
+ * @returns void
+ * @description This is the useEffect hook that handles the page change
+ */
     useEffect(() => {
     if (!api) return
     
     const handleSelect = () => {
       const idx = api.selectedScrollSnap()
       const newPage = idx + 1
-      setCurrentPage(newPage)
+      if (newPage !== currentPage) {
+        setCurrentPage(newPage)
+        onPageChange?.(newPage)
+      }
     }
-    
     api.on('select', handleSelect)
-    
-    // Cleanup event listener to prevent memory leaks
     return () => {
       api.off('select', handleSelect)
     }
-  }, [api])
+  }, [api, currentPage, onPageChange])
+
 
   /**
-   * This is the useEffect hook that scrolls to the initial page
-   * It is used to scroll to the initial page when the component mounts
+   * On initial page, we scroll to the initial page
+   * @param api 
+   * @param initialPage 
+   * @returns void
+   * @description This is the useEffect hook that handles the initial page
    */
 useEffect(() => {
   if (!api) return
@@ -146,11 +139,6 @@ useEffect(() => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* {isLoading && (
-        <div className="absolute inset-0 z-20 pointer-events-none">
-          <PdfPageSkeleton pageNumber={1} progress={progress} />
-        </div>
-      )} */}
       {/* Top bar - Fixed header */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
         <div className="flex items-center gap-2">
@@ -198,7 +186,6 @@ useEffect(() => {
           <CarouselContent className="h-full">
             {numPages > 0 && Array.from({ length: numPages }).map((_, i) => {
               const pageNumber = i + 1
-              const pageLoaded = loadedPages.has(pageNumber)
               const pageFields = fieldsByPage.get(pageNumber) || []
               console.log('pageFields', pageFields)
               return (
@@ -213,7 +200,7 @@ useEffect(() => {
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
                       renderMode="canvas"
-                      onLoadSuccess={() => markPageLoaded(pageNumber)}
+                      onLoadSuccess={() => {}}
                       onLoadError={(e: any) => console.error('Page load error', pageNumber, e)}
                     />
                     {pageFields.length > 0 && (
