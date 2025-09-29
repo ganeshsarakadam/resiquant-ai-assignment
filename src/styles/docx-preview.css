@@ -7,10 +7,7 @@
   align-items: center;
 }
 
-.docx {
-  /* background: #fff; */
-  /* box-shadow: 0 2px 12px rgba(0,0,0,0.08); */
-}
+
 
 /* Prevent pages from exceeding container width; shrink if needed */
 .docx {
@@ -20,4 +17,10 @@
 .docx:first-child {
   padding-top: 0 !important;
   margin-top: 0 !important;
+}
+
+.docx-page-wrapper {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: white;
+  max-width: 100%;
 }

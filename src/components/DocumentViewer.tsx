@@ -5,14 +5,15 @@ import { EmailViewer } from "@/components/EmailViewer"
 import { FileText } from "lucide-react"
 import { ImageViewer } from "@/components/ImageViewer"
 import { SheetViewer } from "@/components/SheetViewer"
-import { DocxViewer } from "@/components/DocxViewer"
 import { useState, useEffect } from "react"
-import { PdfViewer } from "@/components/PdfViewer"
+// import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
 import { useHighlightSetter } from "@/contexts/HighlightContext"
 import { ExtractedField } from "@/types"
 import { loadExtraction } from "@/lib/utils"
+import { PdfViewer } from "@/components/PdfViewer"
+import { DocxViewer } from "@/components/DocxViewer"
 
 interface DocumentViewerProps {
     onFieldHighlight?: (id: string) => void;
