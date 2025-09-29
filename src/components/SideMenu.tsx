@@ -12,6 +12,7 @@ import { SideMenuSkeleton } from "@/components/Skeletons/SideMenuSkeleton";
 import { useState, useEffect } from "react";
 import { getDocumentsById } from "@/data";
 import { Document } from "@/types";
+import { SelectionUrlState } from "@/hooks/useSelectionUrlState";
 
 interface SideMenuProps {
     collapsed: boolean;
@@ -26,7 +27,10 @@ const SideMenu = ({ collapsed, setCollapsed }: SideMenuProps) => {
       useEffect(() => {
         if (!state?.submissionId) return;
         setIsLoading(true);
-        // Simulate loading delay for better UX
+
+        /**
+         * Simulate loading delay to show skeleton
+         */
         setTimeout(() => {
           setDocuments(getDocumentsById(state.submissionId));
           setIsLoading(false);

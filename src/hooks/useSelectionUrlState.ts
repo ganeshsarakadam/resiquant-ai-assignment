@@ -2,36 +2,18 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
-import { submissions } from '@/data/submissions.manifest';
-import { Submission, Document } from '@/types';
 
-/**
- * State interface for the submission viewer
- */
-  export interface SelectionUrlState {
+export interface SelectionUrlState {
   submissionId: string;
   documentId: string;
   page: number | null;
 }
 
-// /**
-//  * Current state with resolved objects
-//  */
-// export interface SubmissionStateWithObjects {
-//   submissionId: string;
-//   documentId: string;
-//   pageNumber: number;
-//   submission: Submission | null;
-//   document: Document | null;
-// }
-
-
 export const useSelectionUrlState = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Parse current query parameters into state
-  const state = useMemo((): SelectionUrlState => {
+  const state = useMemo<SelectionUrlState>(() => {
     const pageParam = searchParams.get('page');
     return {
       submissionId: searchParams.get('submissionId') || '',
@@ -40,49 +22,52 @@ export const useSelectionUrlState = () => {
     };
   }, [searchParams]);
 
-  // Get resolved objects from the state
-  // const stateWithObjects = useMemo((): SubmissionStateWithObjects => {
-  //   const submission = submissions.find(sub => sub.submissionId === state.submissionId) || null;
-  //   const document = submission?.documents.find(doc => doc.id === state.documentId) || null;
-
-  //   return {
-  //     ...state,
-  //     submission,
-  //     document,
-  //   };
-  // }, [state]);
-
-  // Update query parameters
   const setState = useCallback((newState: Partial<SelectionUrlState>) => {
+    // Merge with current state
+    const merged: SelectionUrlState = {
+      submissionId: newState.submissionId !== undefined ? newState.submissionId : state.submissionId,
+      documentId:   newState.documentId   !== undefined ? newState.documentId   : state.documentId,
+      page:         newState.page         !== undefined ? newState.page         : state.page,
+    };
+
+    // ✅ No-op guard
+    if (
+      merged.submissionId === state.submissionId &&
+      merged.documentId   === state.documentId &&
+      merged.page         === state.page
+    ) {
+      return;
+    }
+
+    // ✅ Build from current URL, not from scratch
     const currentParams = new URLSearchParams(searchParams.toString());
 
-    // Update the URL parameters
-    Object.entries(newState).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        currentParams.set(key, value.toString());
-      } else {
-        currentParams.delete(key);
-      }
-    });
+    // ✅ Deterministic set/delete
+    merged.submissionId ? currentParams.set('submissionId', merged.submissionId) : currentParams.delete('submissionId');
+    merged.documentId   ? currentParams.set('documentId',   merged.documentId)   : currentParams.delete('documentId');
+    merged.page != null ? currentParams.set('page', String(merged.page))         : currentParams.delete('page');
 
-    // Navigate to the new URL
-    router.replace(`?${currentParams.toString()}`);
-  }, [router, searchParams]);
+    const target = currentParams.toString();
 
-  // Helper functions for specific state updates
+    // ✅ Skip only if equal to the *current* URL
+    if (target === searchParams.toString()) return;
+
+    const newUrl = `?${target}`;
+
+    // Push for document change, replace for page-only change
+    if (merged.documentId !== state.documentId) {
+      router.push(newUrl);
+    } else {
+      router.replace(newUrl);
+    }
+  }, [router, state, searchParams]);
+
   const setSubmissionId = useCallback((submissionId: string) => {
-    setState({ 
-      submissionId,
-      documentId: '', // Clear document when submission changes
-      page: null // Remove page parameter when submission changes
-    });
+    setState({ submissionId, documentId: '', page: null });
   }, [setState]);
 
   const setDocumentId = useCallback((documentId: string) => {
-    setState({ 
-      documentId, 
-      page: 1 // Remove page parameter when document changes (defaults to page 1)
-    });
+    setState({ documentId, page: 1 });
   }, [setState]);
 
   const setPageNumber = useCallback((pageNumber: number) => {
@@ -90,28 +75,21 @@ export const useSelectionUrlState = () => {
   }, [setState]);
 
   const resetState = useCallback(() => {
-    setState({
-      submissionId: '',
-      documentId: '',
-      page: 1,
-    });
+    setState({ submissionId: '', documentId: '', page: 1 });
+  }, [setState]);
+
+  const setDocumentAndPage = useCallback((documentId: string, pageNumber: number) => {
+    setState({ documentId, page: pageNumber });
   }, [setState]);
 
   return {
-    // Current state
     state,
-    // stateWithObjects,
-    
-    // State setters
     setState,
     setSubmissionId,
     setDocumentId,
     setPageNumber,
+    setDocumentAndPage,
     resetState,
-    
-    // // Computed values
-    // hasSubmission: !!stateWithObjects.submission,
-    // hasDocument: !!stateWithObjects.document,
-    // isReady: !!stateWithObjects.submission && !!stateWithObjects.document,
   };
 };
+// Example usage in a component

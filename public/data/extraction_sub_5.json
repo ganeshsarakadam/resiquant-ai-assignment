@@ -9,7 +9,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -24,7 +24,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -39,7 +39,7 @@
       "confidence": 0,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -54,7 +54,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -69,7 +69,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -84,7 +84,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -99,7 +99,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 1,
         "location": "Page 1",
@@ -114,7 +114,7 @@
       "confidence": 0.95,
       "fieldType": "select",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 2,
         "location": "Page 2",
@@ -129,7 +129,7 @@
       "confidence": 0.95,
       "fieldType": "text",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 2,
         "location": "Page 2",
@@ -144,7 +144,7 @@
       "confidence": 0.95,
       "fieldType": "number",
       "provenance": {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "page": 2,
         "location": "Page 2",
@@ -160,7 +160,7 @@
     "averageConfidence": 0.897,
     "documentsProcessed": [
       {
-        "docId": "doc-pdf-attachment",
+        "docId": "pdf-attachment",
         "docName": "Attachment.pdf",
         "pages": 2,
         "fieldsExtracted": 6

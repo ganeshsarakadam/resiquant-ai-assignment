@@ -5,6 +5,7 @@ import { FieldCard } from "./FieldCard"
 import { ExtractedField } from "@/types";
 import { loadExtractionData } from "@/data/extractions";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
+import { useHighlight } from "@/contexts/HighlightContext";
 
 const FIELDS_STORAGE_PREFIX = 'extracted_fields_';
 
@@ -48,6 +49,24 @@ interface VersionedField extends ExtractedField {
 const FieldList = () => {
     const [fields, setFields] = useState<VersionedField[]>([]);
     const { state } = useSelectionUrlState();
+    const { highlightedField, highlightField } = useHighlight();
+
+    // React to context highlight requests
+    useEffect(() => {
+      if (!highlightedField) return;
+      // Ensure fields are loaded before attempting scroll
+      const fieldExists = fields.some(f => f.id === highlightedField.id);
+      if (!fieldExists) return;
+      
+      const scrollTo = () => {
+        const fieldElement = document.querySelector(`[data-field-value="${highlightedField.id}"]`);
+        if (fieldElement) {
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
+      };
+      // slight delay to let layout settle
+      setTimeout(scrollTo, 50);
+    }, [highlightedField, fields]);
 
     useEffect(() => {
         const loadFields = async () => {
@@ -58,6 +77,7 @@ const FieldList = () => {
             } else {
                 try {
                     const result = await loadExtractionData(state.submissionId);
+                    // console.log('Loaded extraction data:', result);
                     const incoming = result?.extractedFields || [];
                     const versionedFields = incoming.map(f => ({ ...f, originalValue: f.value }));
                     setFields(versionedFields);
@@ -125,9 +145,16 @@ const FieldList = () => {
                 {fields.map((field, i: number) => {
                     const effectiveValue = field.modifiedValue ?? field.originalValue;
                     const isModified = field.modifiedValue !== undefined && field.modifiedValue !== field.originalValue;
-                    return (
-                        <FieldCard
-                            key={field.id ?? i}
+                    const isHighlighted = highlightedField?.id === field.id;
+                    
+                    if (isHighlighted) {
+                        // console.log('Field is highlighted:', field.name, field.id);
+                    }
+                    
+                                        return (
+                                                                        <FieldCard
+                                                                                key={field.id ?? i}
+                                                                                data-field-value={field.id}
                             label={field.name}
                             value={effectiveValue}
                             placeholder={field.originalValue}
@@ -140,8 +167,12 @@ const FieldList = () => {
                             confidence={field.confidence}
                             provenanceSnippet={field.provenance?.snippet}
                             onSnippetClick={(snippet) => {
-                                console.log('Provenance snippet clicked:', snippet, 'from field', field.name);
+                                // console.log('Provenance snippet clicked:', snippet, 'from field', field.name);
+                                
+                                // Use context to highlight field - it will handle document selection automatically
+                                highlightField(field);
                             }}
+                            className={isHighlighted ? "ring-2 ring-blue-500 bg-blue-50/50 !ring-opacity-100" : ""}
                         />
                     );
                 })}

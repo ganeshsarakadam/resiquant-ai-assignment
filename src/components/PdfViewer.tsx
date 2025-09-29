@@ -7,6 +7,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { PdfPageSkeleton } from './Skeletons/PdfPageSkeleton'
 import { HighlightOverlay } from './HighlightOverlay'
 import type { ExtractionData, ExtractedField } from '@/types'
+import { useSelectionUrlState } from '@/hooks/useSelectionUrlState'
+import { Download, RefreshCw, File, FileText } from 'lucide-react'
+
 
 // Dynamically import react-pdf components and setup to avoid SSR issues
 const Document = dynamic(
@@ -26,7 +29,6 @@ export interface PdfViewerProps {
   onDocumentLoadSuccess?: (pdf: any) => void;
   onDocumentLoadError?: (error: Error) => void;
   onDocumentLoadProgress?: (ratio: number) => void;
-  onPageChange?: (page: number) => void;
   /** When provided, we'll attempt to load extraction JSON at /public/data/extraction_<submissionId>.json */
   submissionId?: string;
   /** Enable/disable overlay globally */
@@ -40,44 +42,27 @@ export const PdfViewer = ({
   initialPage = 1,
   onDocumentLoadSuccess,
   onDocumentLoadError,
-  onDocumentLoadProgress,
-  onPageChange,
-  submissionId,
   showExtractionOverlay = true,
   onHighlightClick,
 }: PdfViewerProps) => {
   const [api, setApi] = useState<CarouselApi>()
   const [numPages, setNumPages] = useState<number>(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [progress, setProgress] = useState(0)
+  const [currentPage, setCurrentPage] = useState<number>(initialPage)
+  const { state } = useSelectionUrlState()
   const [loadedPages, setLoadedPages] = useState<Set<number>>(new Set())
-  const [isClient, setIsClient] = useState(false)
   const [extraction, setExtraction] = useState<ExtractionData | null>(null)
   const containerRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
-  // Ensure we're on the client side
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // Reset when document changes
-  useEffect(() => {
-    setNumPages(0)
-    setIsLoading(true)
-    setProgress(0)
-    setLoadedPages(new Set())
-    // Clear extraction only if submission changes or document changes
-    // keep same extraction if navigating pages within same document
-  }, [document.url])
+  
 
   // Load extraction JSON dynamically based on submissionId
   useEffect(() => {
-    if (!submissionId || !showExtractionOverlay) {
+    if (!showExtractionOverlay) {
       setExtraction(null)
       return
     }
     let cancelled = false
-    const path = `/data/extraction_${submissionId}.json`
+    const path = `/data/extraction_${state.submissionId}.json`
     fetch(path)
       .then(r => {
         if (!r.ok) throw new Error(`Extraction file not found: ${path}`)
@@ -86,7 +71,9 @@ export const PdfViewer = ({
       .then((data: ExtractionData) => { if (!cancelled) setExtraction(data) })
       .catch(err => { console.warn('Extraction load failed', err); if (!cancelled) setExtraction(null) })
     return () => { cancelled = true }
-  }, [submissionId, showExtractionOverlay])
+  }, [state.submissionId, showExtractionOverlay])
+
+
 
   // Filter extraction fields for this PDF document & page
   const fieldsByPage = useMemo(() => {
@@ -104,7 +91,7 @@ export const PdfViewer = ({
 
   const handleDocSuccess = (pdf: any) => {
     setNumPages(pdf.numPages)
-    setIsLoading(false)
+    setCurrentPage(initialPage)
     onDocumentLoadSuccess?.(pdf)
     if (api) {
       api.scrollTo(initialPage - 1)
@@ -112,15 +99,10 @@ export const PdfViewer = ({
   }
 
   const handleDocError = (err: Error) => {
-    setIsLoading(false)
     onDocumentLoadError?.(err)
   }
 
-  const handleProgress = ({ loaded, total }: { loaded: number; total: number }) => {
-    const ratio = total ? loaded / total : 0
-    setProgress(ratio)
-    onDocumentLoadProgress?.(ratio)
-  }
+
 
   const markPageLoaded = useCallback((pageNumber: number) => {
     setLoadedPages((prev: Set<number>) => {
@@ -131,13 +113,22 @@ export const PdfViewer = ({
     })
   }, [])
 
-  useEffect(() => {
+    useEffect(() => {
     if (!api) return
-    api.on('select', () => {
+    
+    const handleSelect = () => {
       const idx = api.selectedScrollSnap()
-      onPageChange?.(idx + 1)
-    })
-  }, [api, onPageChange])
+      const newPage = idx + 1
+      setCurrentPage(newPage)
+    }
+    
+    api.on('select', handleSelect)
+    
+    // Cleanup event listener to prevent memory leaks
+    return () => {
+      api.off('select', handleSelect)
+    }
+  }, [api])
 
   /**
    * This is the useEffect hook that scrolls to the initial page
@@ -149,27 +140,48 @@ useEffect(() => {
 }, [api, initialPage])
 
 
-  // Show loading skeleton until client-side hydration is complete
-  // if (!isClient) {
-  //   return (
-  //     <div className="w-full h-full relative">
-  //       <PdfPageSkeleton pageNumber={1} progress={0} />
-  //     </div>
-  //   )
-  // }
-
   return (
-    <div className="w-full h-full relative">
+    <div className="h-full flex flex-col">
       {/* {isLoading && (
         <div className="absolute inset-0 z-20 pointer-events-none">
           <PdfPageSkeleton pageNumber={1} progress={progress} />
         </div>
       )} */}
-      <Document
+      {/* Top bar - Fixed header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
+        <div className="flex items-center gap-2">
+          <FileText className="size-4 text-red-500" />
+          <span className="text-sm font-medium text-gray-700">PDF Document</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-gray-600">
+          {numPages > 0 && (
+            <span className="hidden sm:block">
+              Page {currentPage} of {numPages}
+            </span>
+          )}
+          <button
+            // onClick={handleDownload}
+            title="Download document"
+            className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
+          >
+            <Download className="size-3" /> Download
+          </button>
+          <button
+            // onClick={handleRetry}
+            title="Retry render"
+            className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
+          >
+            <RefreshCw className="size-3" /> Retry
+          </button>
+        </div>
+      </div>
+
+      {/* Main viewer: scrollable content area */}
+      <div className="flex-1 overflow-auto bg-gray-100">
+        <Document
         file={document.url}
         onLoadSuccess={handleDocSuccess}
         onLoadError={handleDocError}
-        onLoadProgress={handleProgress}
         // loading={<PdfPageSkeleton pageNumber={1} progress={progress} />}
         error={<div className="p-4 text-red-600 text-sm">Failed to load PDF.</div>}
         noData={<div className="p-4 text-gray-500 text-sm">No PDF file.</div>}
@@ -177,7 +189,7 @@ useEffect(() => {
         <Carousel
           setApi={setApi}
           opts={{ align: 'start', loop: false }}
-          className="w-full h-full relative"
+          className="relative w-full h-full"
         >
           <CarouselContent className="h-full">
             {numPages > 0 && Array.from({ length: numPages }).map((_, i) => {
@@ -190,11 +202,7 @@ useEffect(() => {
                     className="shadow-lg max-w-full max-h-full relative"
                     ref={(el) => { if (el) containerRefs.current.set(pageNumber, el) }}
                   >
-                    {!pageLoaded && (
-                      <div className="absolute inset-0 z-10">
-                        {/* <PdfPageSkeleton pageNumber={pageNumber} /> */}
-                      </div>
-                    )}
+                  
                     <Page
                       pageNumber={pageNumber}
                       renderTextLayer={false}
@@ -208,10 +216,15 @@ useEffect(() => {
                         width={containerRefs.current.get(pageNumber)?.clientWidth || 0}
                         height={containerRefs.current.get(pageNumber)?.clientHeight || 0}
                         boxes={pageFields.map((f: ExtractedField) => f.provenance.bbox!).filter(Boolean)}
-                        fieldValue={pageFields.map((f: ExtractedField) => f.name).join(', ')}
-                        onClickBox={() => {
-                          // If multiple fields share a region, we could open a tooltip/modal; here call first.
-                          if (onHighlightClick && pageFields[0]) onHighlightClick(pageFields[0])
+                        overlayFields={pageFields}
+                        onClickBox={(field: ExtractedField, boxIndex: number) => {
+                          console.log('Clicked field:', field);
+                          console.log('Box index:', boxIndex);
+                          
+                          // Call original callback if provided
+                          if (onHighlightClick) {
+                            onHighlightClick(field);
+                          }
                         }}
                         documentType="pdf"
                         opacity={0.25}
@@ -228,6 +241,7 @@ useEffect(() => {
           <CarouselNext className="right-2 z-10 cursor-pointer" />
         </Carousel>
       </Document>
+      </div>
     </div>
   )
 }

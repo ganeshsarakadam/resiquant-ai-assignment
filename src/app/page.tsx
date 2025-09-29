@@ -3,6 +3,8 @@
 import SideMenu from "@/components/SideMenu";
 import DocumentViewer from "@/components/DocumentViewer";
 import FieldList from "@/components/FieldList";
+import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
+import { HighlightProvider } from "@/contexts/HighlightContext";
 import SubmissionSelector from "@/components/SubmissionSelector";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,7 @@ import { useState } from "react";
 export default function Home() {
   const [menuCollapsed, setMenuCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const { setDocumentAndPage } = useSelectionUrlState();
   
 
   return (
@@ -79,26 +81,28 @@ export default function Home() {
             direction="horizontal"
             className="hidden xl:flex h-full w-full"
           >
-            <ResizablePanel
-              defaultSize={menuCollapsed ? 70 : 60}
-              minSize={30}
-              className="min-w-0"
-            >
-              <div className="h-full bg-white min-h-0 overflow-hidden">
-                <DocumentViewer />
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel
-              defaultSize={40}
-              minSize={18}
-              maxSize={45}
-              className="min-w-0"
-            >
-              <div className="h-full border-l bg-white min-h-0">
-                <FieldList />
-              </div>
-            </ResizablePanel>
+            <HighlightProvider onDocumentSelect={(field) => setDocumentAndPage(field.provenance?.docId || '', field.provenance?.page || 1)}>
+              <ResizablePanel
+                defaultSize={menuCollapsed ? 70 : 60}
+                minSize={30}
+                className="min-w-0"
+              >
+                <div className="h-full bg-white min-h-0 overflow-hidden">
+                  <DocumentViewer />
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel
+                defaultSize={40}
+                minSize={18}
+                maxSize={45}
+                className="min-w-0"
+              >
+                <div className="h-full border-l bg-white min-h-0">
+                  <FieldList />
+                </div>
+              </ResizablePanel>
+            </HighlightProvider>
           </ResizablePanelGroup>
 
           {/* Mobile/Tablet: vertical split */}

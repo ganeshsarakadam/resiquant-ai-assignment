@@ -22,12 +22,16 @@ export interface Submission {
     documents: Document[];
 }
 
-export interface ExtractedField {
+export interface Field {
   id: string;
   name: string;
   value: string;
+
+}
+
+export interface ExtractedField extends Field {
   confidence: number;
-  fieldType: string
+  fieldType: string;
   provenance: FieldProvenance;
 }
 

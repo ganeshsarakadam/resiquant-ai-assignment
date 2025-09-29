@@ -9,7 +9,7 @@
         "confidence": 0.95,
         "fieldType": "text",
         "provenance": {
-          "docId": "doc-docx-coverage-summary",
+          "docId": "docx-coverage-summary",
           "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
           "page": 1,
           "location": "Page 1",
@@ -23,7 +23,7 @@
         "confidence": 0.95,
         "fieldType": "text",
         "provenance": {
-          "docId": "doc-docx-coverage-summary",
+          "docId": "docx-coverage-summary",
           "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
           "page": 1,
           "location": "Page 1",
@@ -39,7 +39,7 @@
       "averageConfidence": 0.95,
       "documentsProcessed": [
         {
-          "docId": "doc-docx-coverage-summary",
+          "docId": "docx-coverage-summary",
           "docName": "8010 Remmet Ave LLC - Coverage Summary - 2024.docx",
           "pages": 1,
           "fieldsExtracted": 1

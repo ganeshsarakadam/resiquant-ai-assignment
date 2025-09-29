@@ -96,7 +96,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
 
     async function loadWorkbook() {
       try {
-        console.log('[SheetViewer] start loadWorkbook()', { url: doc.url, hadInitialPage: state.page });
+        // console.log('[SheetViewer] start loadWorkbook()', { url: doc.url, hadInitialPage: state.page });
         setIsLoading(true);
         setError(null);
         hadInitialPageParamRef.current = state.page != null;
@@ -115,7 +115,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
           buffer = await (doc.url as File).arrayBuffer();
         }
 
-        console.log('[SheetViewer] fetched buffer, parsing with xlsx');
+        // console.log('[SheetViewer] fetched buffer, parsing with xlsx');
         
         // Parse the workbook
         const workbook = XLSX.read(buffer, { type: 'array' });
@@ -136,7 +136,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
           };
         });
 
-        console.log('[SheetViewer] parsed sheets', { count: sheetData.length, names: sheetData.map(s => s.name) });
+        // console.log('[SheetViewer] parsed sheets', { count: sheetData.length, names: sheetData.map(s => s.name) });
 
         if (!isMounted) return;
 
@@ -144,7 +144,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
         setCurrentIndex(0);
         setIsLoading(false);
 
-        console.log('[SheetViewer] sheets state set, isLoading=false');
+        // console.log('[SheetViewer] sheets state set, isLoading=false');
         
         // Fire onReady callback
         try {
@@ -157,7 +157,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
         if (api) {
           try { 
             api.reInit(); 
-            console.log('[SheetViewer] api.reInit after sheets set'); 
+            // console.log('[SheetViewer] api.reInit after sheets set'); 
           } catch (e) { 
             console.warn('[SheetViewer] api.reInit failed', e); 
           }
@@ -199,7 +199,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
       
       // If initial URL param existed and we haven't applied it yet, skip until URL->carousel effect runs
       if (firstSelectRef.current && hadInitialPageParamRef.current && !initialAppliedRef.current) {
-        console.log('[SheetViewer] early select ignored pending initial URL scroll');
+        // console.log('[SheetViewer] early select ignored pending initial URL scroll');
         return;
       }
       if (firstSelectRef.current) {
@@ -207,7 +207,7 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
       }
       if (state.page !== desired) {
         setPageNumber(desired);
-        console.log('[SheetViewer] onSelect -> setPageNumber', { desired });
+        // console.log('[SheetViewer] onSelect -> setPageNumber', { desired });
       }
     };
     api.on('select', onSelect);
@@ -225,17 +225,17 @@ export const SheetViewer = ({ document: doc, onReady, onError }: SheetViewerProp
     if (needsScroll) {
       const jump = !initialAppliedRef.current; // jump on first application
       api.scrollTo(clamped, jump);
-      console.log('[SheetViewer] URL->carousel scrollTo', { urlPage, clamped, jump });
+      // console.log('[SheetViewer] URL->carousel scrollTo', { urlPage, clamped, jump });
     }
     if (!initialAppliedRef.current) {
       initialAppliedRef.current = true;
       firstSelectRef.current = false; // we've now applied initial position; allow future selects to update URL
       setCurrentIndex(clamped);
-      console.log('[SheetViewer] initialAppliedRef set true', { clamped });
+      // console.log('[SheetViewer] initialAppliedRef set true', { clamped });
       if (state.page !== clamped + 1) {
         // Normalize URL if it was out of bounds
         setPageNumber(clamped + 1);
-        console.log('[SheetViewer] normalized out-of-range page param', { newPage: clamped + 1 });
+        // console.log('[SheetViewer] normalized out-of-range page param', { newPage: clamped + 1 });
       }
     }
   }, [state.page, api, sheets.length]);

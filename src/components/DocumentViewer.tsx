@@ -10,10 +10,15 @@ import { useState, useEffect } from "react"
 import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
+import { useHighlight } from "@/contexts/HighlightContext"
 
-const DocumentViewer = () => {
+interface DocumentViewerProps {
+    onFieldHighlight?: (id: string) => void;
+}
+
+const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const { state, setPageNumber } = useSelectionUrlState();
-    const [currentPage, setCurrentPage] = useState(0);
+    const { highlightedField, highlightField } = useHighlight();
     const [numPages, setNumPages] = useState<number>(0);
     const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
 
@@ -56,7 +61,19 @@ const DocumentViewer = () => {
         setIsDocumentLoadingInProgress(true);
     }, [document]);
 
-    
+    /**
+     * Listen for page changes from context (when field provenance is clicked)
+     */
+    // useEffect(() => {
+    //     if (highlightedField?.provenance?.page && document) {
+    //         const pageNumber = highlightedField.provenance.page;
+    //         console.log('DocumentViewer: Navigating to page', pageNumber);
+    //         setPageNumber(pageNumber);
+    //         setCurrentPage(pageNumber - 1);
+    //     }
+    // }, [highlightedField, document, setPageNumber]);
+
+
     /**
      * Render different viewers based on document type
      * If no document is selected, we show a message to select a document
@@ -84,26 +101,28 @@ const DocumentViewer = () => {
 
         switch (document.type) {
             case 'pdf':
-                return (
-                    <PdfViewer
-                        document={document}
-                        initialPage={state.page || 1}
-                        onDocumentLoadSuccess={onDocumentLoadSuccess}
-                        onDocumentLoadError={onDocumentLoadError}
-                        onPageChange={(p: number) => { setCurrentPage(p - 1); setPageNumber(p); }}
-                        submissionId={state.submissionId}
-                        showExtractionOverlay={true}
-                        onHighlightClick={(field) => {
-                            console.log('Clicked highlight field:', field)
-                        }}
-                    />
-                );
+                                return (
+                                    <PdfViewer
+                                        document={document}
+                                        initialPage={state.page || 1}
+                                        onDocumentLoadSuccess={onDocumentLoadSuccess}
+                                        onDocumentLoadError={onDocumentLoadError}
+                                        submissionId={state.submissionId}
+                                        showExtractionOverlay={true}
+                                        onHighlightClick={(field) => {
+                                            if (!field) return;
+                                            // Use context to highlight field - it will handle document selection automatically
+                                            highlightField(field);
+                                            onFieldHighlight?.(field.id);
+                                        }}
+                                    />
+                                );
             case 'image':
                 return <ImageViewer document={document} />;
             case 'xlsx':
                 return <SheetViewer document={document} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
             case 'docx':
-                return <DocxViewer document={document} initialPage={state.page || 1} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} onPageChange={(p: number) => { setCurrentPage(p - 1); setPageNumber(p); }} />;
+                return <DocxViewer document={document} initialPage={state.page || 1} onReady={() => { setIsDocumentLoadingInProgress(false); }} onError={() => { setIsDocumentLoadingInProgress(false); }} />;
             case 'eml':
                 return <EmailViewer document={document} />;
             default:
@@ -130,7 +149,7 @@ const DocumentViewer = () => {
             <div className="px-4 py-2 border-b bg-white">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-medium">Document Viewer</h2>
-                    <div className="flex items-center gap-4">
+                    {/* <div className="flex items-center gap-4">
                         {document && document.type === 'pdf' && (
                             <span className="text-xs text-gray-500">
                                 Page {currentPage + 1} of {numPages || '?'}
@@ -141,7 +160,7 @@ const DocumentViewer = () => {
                                 {document.type.toUpperCase()} Document
                             </span>
                         )}
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto relative">

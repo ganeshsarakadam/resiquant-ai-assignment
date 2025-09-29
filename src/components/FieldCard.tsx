@@ -48,7 +48,13 @@ const fieldCardVariants = cva(
     }
 );
 
-export interface FieldCardProps extends VariantProps<typeof fieldCardVariants> {
+type ExtraDivProps = {
+  // Allow passing arbitrary data-* attributes and id for scrolling/highlight
+  id?: string;
+  [dataAttr: `data-${string}`]: any; // index signature for data-* only
+};
+
+export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, ExtraDivProps {
     label: string;
     value: string;
     placeholder: string;
@@ -67,6 +73,7 @@ export interface FieldCardProps extends VariantProps<typeof fieldCardVariants> {
     onEditingChange?: (editing: boolean) => void;
   className?: string;
   // live updates always enabled with fixed 250ms debounce (props removed)
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export interface FieldCardHandle {
@@ -81,6 +88,8 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
     value,
     placeholder,
     onEdit,
+    onCopy, // keep extracted but do not spread
+    onDelete, // keep extracted but do not spread
     editable,
     disabled,
     size = "default",
@@ -91,7 +100,8 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
     onEditingChange,
   className,
   status,
-  } = props;
+  onClick,
+  ...rest } = props;
 
   const [wasModified, setWasModified] = useState(status === 'modified');
   const modifiedRef = useRef(value);
@@ -147,9 +157,12 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
         className
       )}
       role="group"
+      onClick={onClick}
       aria-disabled={disabled || undefined}
       data-label={label}
-      data-editing={editingApi.isEditing || undefined}
+  data-editing={editingApi.isEditing || undefined}
+  // filter out conflicting callbacks
+  {...Object.fromEntries(Object.entries(rest).filter(([k]) => !['onCopy','onDelete'].includes(k)))}
     >
       <div className="flex flex-col gap-1 pr-8" aria-live="polite">
         <FieldCardHeader
