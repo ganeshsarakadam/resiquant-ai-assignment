@@ -5,7 +5,7 @@ import { Document as DocType, ExtractedField } from "@/types";
 import { FileSpreadsheet, Download, RefreshCw } from "lucide-react";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
-import * as XLSX from 'xlsx-js-style';
+import type * as XLSX from 'xlsx-js-style';
 import {
   Carousel,
   CarouselContent,
@@ -31,17 +31,12 @@ interface SheetData {
   rowHeights?: number[];
   merges?: XLSX.Range[];
 }
-
-// Parse cell range (e.g., ["A1", "A2"]) to ExcelCellRange [row, col, rowSpan, colSpan] for end cell only
-const parseCellRange = (cellRange: [string, string]): [number, number, number, number] | null => {
-  try {
-    const [, end] = cellRange; // Use only the end cell (e.g., A2)
-    const { r, c } = XLSX.utils.decode_cell(end);
-    console.log('[SheetViewer] Parsed cell range:', { cellRange, row: r, col: c });
-    return [r, c, 1, 1]; // Single cell: rowSpan=1, colSpan=1
-  } catch (e) {
-    console.warn('[SheetViewer] Invalid cell range:', cellRange, e);
-    return null;
+// Utility to yield control to the browser between heavy chunks
+const yieldToBrowser = async () => {
+  if (typeof (window as any).requestIdleCallback === 'function') {
+    await new Promise(res => (window as any).requestIdleCallback(res, { timeout: 60 }));
+  } else {
+    await new Promise(res => setTimeout(res, 0));
   }
 };
 
@@ -49,18 +44,18 @@ const parseCellRange = (cellRange: [string, string]): [number, number, number, n
 const SheetTable = React.memo(({
   sheet,
   extractedFields = [],
-  onHighlightClick
+  onHighlightClick,
+  decodeCell
 }: {
   sheet: SheetData;
   extractedFields?: ExtractedField[];
   onHighlightClick?: (field: ExtractedField) => void;
+  decodeCell?: (addr: string) => { r: number; c: number };
 }) => {
+  const [visibleRows, setVisibleRows] = useState(200); // initial render cap
   // Log re-renders
-  console.log('[SheetTable] Re-rendered with props:', {
-    sheetName: sheet.name,
-    fieldsCount: extractedFields.length,
-    onHighlightClick: onHighlightClick?.toString()
-  });
+  // Debug render trace (commented out to reduce console noise)
+  // console.log('[SheetTable] Re-rendered with props:', { sheetName: sheet.name, fieldsCount: extractedFields.length });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -73,109 +68,75 @@ const SheetTable = React.memo(({
 
   // Update container size and cell dimensions
   useEffect(() => {
-    const updateSizes = () => {
-      if (containerRef.current && tableRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        console.log('[SheetTable] Container size updated:', { clientWidth, clientHeight });
-
-        // Measure actual row heights
-        const rows = tableRef.current.querySelectorAll('tr');
-        const newCellHeights = Array.from(rows).map(row => row.getBoundingClientRect().height);
-        const newTotalTableHeight = newCellHeights.reduce((sum, h) => sum + h, 0);
-
-        // Measure actual column widths (first row's <td> elements)
-        const cells = rows[0]?.querySelectorAll('td') || [];
-        const newCellWidths = Array.from(cells).map(cell => cell.getBoundingClientRect().width);
-        const newTotalTableWidth = newCellWidths.reduce((sum, w) => sum + w, 0);
-
-        console.log('[SheetTable] Measured dimensions:', {
-          cellHeights: newCellHeights,
-          cellWidths: newCellWidths,
-          totalTableHeight: newTotalTableHeight,
-          totalTableWidth: newTotalTableWidth
-        });
-
-        // Capture padding offset so overlay can align to table (table starts after padding)
-        const style = window.getComputedStyle(containerRef.current);
-        const paddingLeft = parseFloat(style.paddingLeft) || 0;
-        const paddingTop = parseFloat(style.paddingTop) || 0;
-        setContainerPadding({ left: paddingLeft, top: paddingTop });
-
-        setContainerSize({ width: clientWidth, height: clientHeight });
-        setCellWidths(newCellWidths.length > 0 ? newCellWidths : (sheet.colWidths?.map(w => (w || 8) * 7) || Array(sheet.data[0]?.length || 1).fill(80)));
-        setCellHeights(newCellHeights.length > 0 ? newCellHeights : (sheet.rowHeights?.map(h => (h || 20) * 4 / 3) || Array(sheet.data.length).fill(24)));
-        setTotalTableHeight(newTotalTableHeight || newCellHeights.length * 24);
-        setTotalTableWidth(newTotalTableWidth || newCellWidths.length * 80);
-      }
+    let frame = 0;
+    const measure = () => {
+      if (!containerRef.current || !tableRef.current) return;
+      const { clientWidth, clientHeight } = containerRef.current;
+      const rows = tableRef.current.querySelectorAll('tr');
+      const newCellHeights = Array.from(rows).map(r => (r as HTMLTableRowElement).getBoundingClientRect().height);
+      const newTotalTableHeight = newCellHeights.reduce((sum, h) => sum + h, 0);
+      const firstRowCells = rows[0]?.querySelectorAll('td') || [];
+      const newCellWidths = Array.from(firstRowCells).map(c => (c as HTMLTableCellElement).getBoundingClientRect().width);
+      const newTotalTableWidth = newCellWidths.reduce((sum, w) => sum + w, 0);
+      const style = window.getComputedStyle(containerRef.current);
+      setContainerPadding({ left: parseFloat(style.paddingLeft) || 0, top: parseFloat(style.paddingTop) || 0 });
+      setContainerSize({ width: clientWidth, height: clientHeight });
+      setCellWidths(newCellWidths.length ? newCellWidths : (sheet.colWidths?.map(w => (w || 8) * 7) || Array(sheet.data[0]?.length || 1).fill(80)));
+      setCellHeights(newCellHeights.length ? newCellHeights : (sheet.rowHeights?.map(h => (h || 20) * 4 / 3) || Array(sheet.data.length).fill(24)));
+      setTotalTableHeight(newTotalTableHeight || newCellHeights.length * 24);
+      setTotalTableWidth(newTotalTableWidth || newCellWidths.length * 80);
     };
-
-    updateSizes();
-    window.addEventListener('resize', updateSizes);
-    const observer = new ResizeObserver(updateSizes);
-    if (containerRef.current) observer.observe(containerRef.current);
+    frame = requestAnimationFrame(measure);
+    window.addEventListener('resize', measure);
+    const ro = new ResizeObserver(measure);
+    if (containerRef.current) ro.observe(containerRef.current);
     return () => {
-      window.removeEventListener('resize', updateSizes);
-      if (containerRef.current) observer.unobserve(containerRef.current);
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', measure);
+      if (containerRef.current) ro.unobserve(containerRef.current);
     };
   }, [sheet.colWidths, sheet.rowHeights, sheet.data]);
 
   if (!sheet.data.length) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Empty sheet
-      </div>
-    );
+    return <div className="flex items-center justify-center h-full text-gray-500">Empty sheet</div>;
   }
 
-  const maxColumns = Math.max(...sheet.data.map(row => row.length));
-  const displayData = sheet.data.slice(0, 1000);
-
-  // Convert cellRange to ExcelCellRange [row, col, rowSpan, colSpan]
+  const maxColumns = Math.max(...sheet.data.map(r => r.length));
+  const displayData = sheet.data.slice(0, visibleRows);
   const excelBoxes: [number, number, number, number][] = extractedFields
-    .map((f) => {
-      const cellRange = f.provenance.cellRange;
-      if (!cellRange || !Array.isArray(cellRange) || cellRange.length !== 2) {
-        console.warn('[SheetTable] Missing or invalid cellRange:', f);
+    .map(f => {
+      const cellRange = f.provenance.cellRange as any;
+      if (!cellRange || !Array.isArray(cellRange) || cellRange.length !== 2) return null;
+      try {
+        const [, end] = cellRange as [string, string];
+        if (!decodeCell) return null;
+        const { r, c } = decodeCell(end);
+        const box: [number, number, number, number] = [r, c, 1, 1];
+        if (box[0] >= displayData.length || box[1] >= maxColumns) return null;
+        return box;
+      } catch {
         return null;
       }
-      const box = parseCellRange(cellRange);
-      if (box && (box[0] >= displayData.length || box[1] >= maxColumns)) {
-        console.warn('[SheetTable] Cell range out of bounds:', { cellRange, row: box[0], col: box[1], maxRows: displayData.length, maxCols: maxColumns });
-        return null;
-      }
-      return box;
     })
     .filter((b): b is [number, number, number, number] => !!b);
 
-  // Adjust for merged cells
+  const canLoadMore = visibleRows < sheet.data.length;
+
   if (sheet.merges) {
-    excelBoxes.forEach((box) => {
+    excelBoxes.forEach(box => {
       const [row, col, rowSpan, colSpan] = box;
-      sheet.merges!.forEach(merge => {
-        if (
-          row >= merge.s.r && row <= merge.e.r &&
-          col >= merge.s.c && col <= merge.e.c
-        ) {
-          box[2] = Math.max(rowSpan, merge.e.r - merge.s.r + 1);
-          box[3] = Math.max(colSpan, merge.e.c - merge.s.c + 1);
-          console.log('[SheetTable] Adjusted for merge:', { box, merge });
+      sheet.merges!.forEach(m => {
+        if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
+          box[2] = Math.max(rowSpan, m.e.r - m.s.r + 1);
+          box[3] = Math.max(colSpan, m.e.c - m.s.c + 1);
         }
       });
     });
   }
 
-  console.log('[SheetTable] Rendering with:', {
-    containerSize,
-    excelBoxes,
-    fieldsCount: extractedFields.length,
-    sheetName: sheet.name,
-    totalTableHeight,
-    totalTableWidth
-  });
-
   return (
-    <div className="h-full overflow-auto bg-white p-4 relative" ref={containerRef}>
-      <div className="max-w-full">
+    <div className="h-full overflow-auto bg-white p-4 relative" ref={containerRef} style={{ contentVisibility: 'auto', contain: 'layout paint style' }}>
+      <div className="inline-block min-w-full align-top">
         <table ref={tableRef} className="border-collapse border border-gray-300 text-sm table-fixed">
           <tbody>
             {displayData.map((row, rowIndex) => (
@@ -201,43 +162,47 @@ const SheetTable = React.memo(({
             ))}
           </tbody>
         </table>
-        {sheet.data.length > 1000 && (
-          <div className="mt-4 text-sm text-gray-500 text-center">
-            Showing first 1000 rows of {sheet.data.length} total rows
+        {canLoadMore && (
+          <div className="mt-2 flex justify-center">
+            <button
+              onClick={() => setVisibleRows(v => Math.min(v + 300, sheet.data.length))}
+              className="px-3 py-1.5 text-xs rounded-md border bg-white hover:bg-gray-50 shadow-sm"
+            >
+              Load more rows ({visibleRows}/{sheet.data.length})
+            </button>
           </div>
         )}
       </div>
       {containerSize.width > 0 && containerSize.height > 0 && excelBoxes.length > 0 && (
-        <HighlightOverlay
-          width={totalTableWidth || containerSize.width}
-          height={totalTableHeight || containerSize.height}
-          boxes={excelBoxes}
-          overlayFields={extractedFields}
-          onClickBox={onHighlightClick}
-          documentType="xlsx"
-          cellWidths={cellWidths}
-          cellHeights={cellHeights}
-          columnCount={maxColumns}
-          rowCount={displayData.length}
-          totalTableHeight={totalTableHeight}
-          totalTableWidth={totalTableWidth}
-          offsetX={containerPadding.left}
+        <div className="pointer-events-none absolute top-0 left-0">
+          <HighlightOverlay
+            width={totalTableWidth || containerSize.width}
+            height={totalTableHeight || containerSize.height}
+            boxes={excelBoxes}
+            overlayFields={extractedFields}
+            onClickBox={onHighlightClick}
+            documentType="xlsx"
+            cellWidths={cellWidths}
+            cellHeights={cellHeights}
+            columnCount={maxColumns}
+            rowCount={displayData.length}
+            totalTableHeight={totalTableHeight}
+            totalTableWidth={totalTableWidth}
+            offsetX={containerPadding.left}
             offsetY={containerPadding.top}
-          opacity={0.25}
-          color="#f59e0b"
-          showLabels={false}
-        />
+            opacity={0.25}
+            color="#f59e0b"
+            showLabels={false}
+          />
+        </div>
       )}
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Custom comparison for React.memo
-  return (
-    prevProps.sheet === nextProps.sheet &&
-    prevProps.extractedFields === nextProps.extractedFields &&
-    prevProps.onHighlightClick === nextProps.onHighlightClick
-  );
-});
+}, (prevProps, nextProps) => (
+  prevProps.sheet === nextProps.sheet &&
+  prevProps.extractedFields === nextProps.extractedFields &&
+  prevProps.onHighlightClick === nextProps.onHighlightClick
+));
 
 const normalizeCell = (v: any) => String(v ?? '').replace(/[\u00A0\t\r\n]+/g, ' ').trim();
 const splitOnDelimiter = (s: string) => {
@@ -334,6 +299,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
   const hadInitialPageParamRef = useRef<boolean>(state.page != null);
   const firstSelectRef = useRef<boolean>(true);
   const initialAppliedRef = useRef<boolean>(false);
+  const xlsxRef = useRef<any>(null);
 
   // Memoize currentSheetFields to prevent reference changes
   const currentSheetFields = useMemo(
@@ -352,39 +318,37 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
         firstSelectRef.current = true;
         initialAppliedRef.current = false;
 
+        // Dynamically import XLSX to avoid blocking initial load of other doc types
+        if (!xlsxRef.current) {
+          xlsxRef.current = await import('xlsx-js-style');
+        }
+        const XLSXMod: typeof XLSX = xlsxRef.current;
+
         let buffer: ArrayBuffer;
         if (typeof doc.url === 'string') {
           const response = await fetch(doc.url);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch spreadsheet: ${response.statusText}`);
-          }
+          if (!response.ok) throw new Error(`Failed to fetch spreadsheet: ${response.statusText}`);
           buffer = await response.arrayBuffer();
         } else {
           buffer = await (doc.url as File).arrayBuffer();
         }
 
-        const workbook = XLSX.read(buffer, { type: 'array' });
+        // Yield before heavy parse
+        await yieldToBrowser();
+        const workbook = XLSXMod.read(buffer, { type: 'array' });
 
-        const sheetData: SheetData[] = workbook.SheetNames.map(sheetName => {
+        const sheetData: SheetData[] = [];
+        for (let i = 0; i < workbook.SheetNames.length; i++) {
+          const sheetName = workbook.SheetNames[i];
           const worksheet = workbook.Sheets[sheetName];
-          const data = XLSX.utils.sheet_to_json(worksheet, {
-            header: 1,
-            defval: '',
-            raw: false
-          }) as any[][];
-          const normalizedData = normalizeSheetToTable(data);
+          const data = XLSXMod.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false }) as any[][];
           const colWidths = worksheet['!cols']?.map(col => col.wch || 8);
           const rowHeights = worksheet['!rows']?.map(row => row.hpt || 20);
           const merges = worksheet['!merges'];
-
-          return {
-            name: sheetName,
-            data: data,
-            colWidths,
-            rowHeights,
-            merges,
-          };
-        });
+          sheetData.push({ name: sheetName, data, colWidths, rowHeights, merges });
+          // Yield between sheets to keep UI responsive
+          if (i < workbook.SheetNames.length - 1) await yieldToBrowser();
+        }
 
         if (!isMounted) return;
 
@@ -515,7 +479,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden bg-gray-100">
+          <div className="flex-1 overflow-auto bg-gray-100">
         {error && !isLoading && (
           <div className="w-full h-full flex items-center justify-center p-6 bg-white">
             <div className="max-w-sm text-center">
@@ -558,6 +522,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
                             sheet={sheet}
                             extractedFields={currentSheetFields}
                             onHighlightClick={onHighlightClick}
+                            decodeCell={xlsxRef.current?.utils.decode_cell}
                           />
                         </div>
                       </div>

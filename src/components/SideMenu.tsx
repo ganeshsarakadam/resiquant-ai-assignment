@@ -43,42 +43,51 @@ const SideMenu = ({ collapsed, setCollapsed }: SideMenuProps) => {
     }
 
     return (
-        <aside
+      <aside
         className={[
-          "relative h-full border-r bg-white shrink-0",
-          "transition-[width] duration-200 ease-in-out",
-          collapsed ? "w-8" : "w-64", // keep a thin strip when collapsed
+          "relative h-full shrink-0",
+          // Reserve space only when expanded; when collapsed reserve a slim gutter for handle
+          collapsed ? "w-4" : "w-64"
         ].join(" ")}
+        aria-label="Document side menu"
       >
-        {/* MAIN MENU CONTENT (hidden when collapsed) */}
-        <div className={collapsed ? "hidden" : "h-full flex flex-col"}>
-          <div className="flex items-center justify-between px-3 py-2">
+        {/* Sliding content (kept in flow to avoid overlay intercept issues) */}
+        <div
+          className={[
+            "h-full w-64 border-r bg-white flex flex-col",
+            "transition-transform duration-200 ease-out will-change-transform",
+            "[contain:layout_paint_style] content-visibility-auto",
+            collapsed ? "-translate-x-[calc(100%-0.25rem)]" : "translate-x-0",
+            "shadow-sm",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between px-3 py-2 shrink-0">
             <div className="text-sm font-medium text-gray-700">Documents - {documents.length}</div>
-            <div className="flex items-center gap-2">
-             
+            {!collapsed && (
               <button
                 onClick={() => setCollapsed(true)}
                 className="inline-flex cursor-pointer items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
                 title="Collapse menu"
+                aria-label="Collapse menu"
+                aria-expanded={!collapsed}
               >
-                <PanelLeftClose className="size-3.5 cursor-pointer" /> Hide
+                <PanelLeftClose className="h-4 w-4 cursor-pointer" /> Hide
               </button>
-            </div>
+            )}
           </div>
           <Separator />
-          <div className="flex-1 overflow-y-auto">
-            <DocumentList documents={documents}  />
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <DocumentList documents={documents} />
           </div>
         </div>
-  
-        {/* ALWAYS-MOUNTED REVEAL BUTTON (visible only when collapsed) */}
+        {/* Collapsed open button */}
         {collapsed && (
           <button
             onClick={() => setCollapsed(false)}
-            className="absolute right-1 top-2 z-10 inline-flex items-center justify-center
-                       h-7 w-6 rounded-md border bg-white hover:bg-gray-50 cursor-pointer"
-            title="Show menu"
+            className="absolute top-2 left-0 z-10 inline-flex items-center justify-center h-7 w-6 rounded-md border bg-white hover:bg-gray-50 shadow-sm"
             aria-label="Show menu"
+            aria-expanded={!collapsed}
+            title="Show menu"
           >
             <PanelLeftOpen className="h-4 w-4 cursor-pointer" />
           </button>
