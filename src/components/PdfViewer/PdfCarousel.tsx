@@ -62,6 +62,7 @@ export const PdfCarousel = ({
             <CarouselItem key={pageNumber} className="h-full flex items-center justify-center bg-gray-100">
               <PdfPage
                 pageNumber={pageNumber}
+                totalPages={numPages}
                 pageFields={pageFields}
                 onHighlightClick={onHighlightClick}
               />

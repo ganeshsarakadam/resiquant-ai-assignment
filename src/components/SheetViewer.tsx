@@ -360,6 +360,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
   useEffect(() => {
     let isMounted = true;
 
+    const controller = new AbortController();
     async function loadWorkbook() {
       try {
         setIsLoading(true);
@@ -376,7 +377,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
 
         let buffer: ArrayBuffer;
         if (typeof doc.url === 'string') {
-          const response = await fetch(doc.url);
+          const response = await fetch(doc.url, { signal: controller.signal });
           if (!response.ok) throw new Error(`Failed to fetch spreadsheet: ${response.statusText}`);
           buffer = await response.arrayBuffer();
         } else {
@@ -436,7 +437,7 @@ export const SheetViewer = React.memo(({ document: doc, extractedFields = [], on
     }
 
     loadWorkbook();
-    return () => { isMounted = false; };
+    return () => { isMounted = false; controller.abort(); };
   }, [doc.url, onReady, onError]);
 
   useEffect(() => {

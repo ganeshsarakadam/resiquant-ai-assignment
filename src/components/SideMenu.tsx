@@ -27,19 +27,23 @@ const SideMenu = ({ collapsed, setCollapsed }: SideMenuProps) => {
       useEffect(() => {
         if (!state?.submissionId) return;
         setIsLoading(true);
-
-        /**
-         * Simulate loading delay to show skeleton
-         */
-        setTimeout(() => {
-          setDocuments(getDocumentsById(state.submissionId));
-          setIsLoading(false);
+        let cancelled = false;
+        const timer = setTimeout(() => {
+          if (cancelled) return;
+            setDocuments(getDocumentsById(state.submissionId));
+            setIsLoading(false);
         }, 500);
+        return () => { cancelled = true; clearTimeout(timer); };
       }, [state?.submissionId])
 
     // Show skeleton while loading
     if (isLoading) {
-        return <SideMenuSkeleton collapsed={collapsed} />;
+        return (
+          <div aria-busy="true" aria-live="polite" role="status">
+            <SideMenuSkeleton collapsed={collapsed} />
+            <span className="sr-only">Loading documents…</span>
+          </div>
+        );
     }
 
     return (
@@ -65,6 +69,7 @@ const SideMenu = ({ collapsed, setCollapsed }: SideMenuProps) => {
             <div className="text-sm font-medium text-gray-700">Documents - {documents.length}</div>
             {!collapsed && (
               <button
+                type="button"
                 onClick={() => setCollapsed(true)}
                 className="inline-flex cursor-pointer items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
                 title="Collapse menu"
@@ -83,6 +88,7 @@ const SideMenu = ({ collapsed, setCollapsed }: SideMenuProps) => {
         {/* Collapsed open button */}
         {collapsed && (
           <button
+            type="button"
             onClick={() => setCollapsed(false)}
             className="absolute top-2 left-0 z-10 inline-flex items-center justify-center h-7 w-6 rounded-md border bg-white hover:bg-gray-50 shadow-sm"
             aria-label="Show menu"

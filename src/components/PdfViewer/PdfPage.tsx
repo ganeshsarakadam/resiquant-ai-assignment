@@ -9,12 +9,13 @@ import type { ExtractedField } from '@/types'
 const Page = dynamic(() => import('react-pdf').then(mod => ({ default: mod.Page })), { ssr: false })
 
 interface PdfPageProps {
-  pageNumber: number
-  pageFields: ExtractedField[]
-  onHighlightClick?: (field: ExtractedField) => void
+  pageNumber: number;
+  totalPages?: number;
+  pageFields: ExtractedField[];
+  onHighlightClick?: (field: ExtractedField) => void;
 }
 
-export const PdfPage = ({ pageNumber, pageFields, onHighlightClick }: PdfPageProps) => {
+export const PdfPage = ({ pageNumber, totalPages, pageFields, onHighlightClick }: PdfPageProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 
@@ -57,6 +58,9 @@ export const PdfPage = ({ pageNumber, pageFields, onHighlightClick }: PdfPagePro
     <div
       className="shadow-lg max-w-full max-h-full relative"
       ref={containerRef}
+      role="group"
+      aria-label={`Page ${pageNumber}${totalPages ? ` of ${totalPages}` : ''}`}
+      tabIndex={-1}
     >
       <Page
         pageNumber={pageNumber}

@@ -28,6 +28,7 @@ export const PdfHeader = ({
           </span>
         )}
         <button
+          type="button"
           onClick={onDownload}
           title="Download document"
           className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
@@ -35,6 +36,7 @@ export const PdfHeader = ({
           <Download className="size-3" /> Download
         </button>
         <button
+          type="button"
           onClick={onRetry}
           title="Retry render"
           className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"

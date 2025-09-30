@@ -5,7 +5,7 @@ import { EmailViewer } from "@/components/EmailViewer"
 import { FileText } from "lucide-react"
 import { ImageViewer } from "@/components/ImageViewer"
 import { SheetViewer } from "@/components/SheetViewer"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 // import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
@@ -22,6 +22,7 @@ interface DocumentViewerProps {
 
 const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const { state, setPageNumber } = useSelectionUrlState();
+    const headingRef = useRef<HTMLHeadingElement>(null);
     const highlightField = useHighlightSetter();
     const [numPages, setNumPages] = useState<number>(0);
     const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
@@ -71,6 +72,13 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             return;
         }
         setIsDocumentLoadingInProgress(true);
+        // Only move focus if user is not actively interacting with Field List or another focusable region.
+    const domActive = (typeof window !== 'undefined') ? (window.document.activeElement as HTMLElement | null) : null;
+    const withinFieldList = !!domActive?.closest('[data-field-list-container]');
+        if (!withinFieldList) {
+            // Focus immediately (no timeout) so we avoid stealing focus from soon-to-be user key navigation.
+            headingRef.current?.focus();
+        }
     }, [document]);
 
 
@@ -174,15 +182,23 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
 
     return (
         <div className="h-full flex flex-col min-h-0">
-            <div className="px-4 py-2 border-b bg-white">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-medium">Document Viewer</h2>
-                </div>
-            </div>
+                        <div className="px-4 py-2 border-b bg-white">
+                                <div className="flex items-center justify-between">
+                                        <h2
+                                            ref={headingRef}
+                                            tabIndex={-1}
+                                            className="text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                                            aria-live="polite"
+                                        >
+                                            Document Viewer{document ? `: ${document.name}` : ''}
+                                        </h2>
+                                </div>
+                        </div>
             <div className="flex-1 min-h-0 overflow-y-auto relative">
                 {document && isDocumentLoadingInProgress && (
-                    <div className="absolute inset-0 z-20">
+                    <div className="absolute inset-0 z-20" aria-busy="true" role="status" aria-live="polite">
                         <DocumentViewerSkeleton />
+                        <span className="sr-only">Loading document…</span>
                     </div>
                 )}
                 {renderDocumentViewer()}

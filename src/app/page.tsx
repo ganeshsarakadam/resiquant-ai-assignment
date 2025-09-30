@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="flex flex-col h-dvh bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b bg-white">
+      <header className="sticky top-0 z-30 border-b bg-white" role="banner">
         <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-2 xl:px-4">
           <div className="h-14 flex items-center justify-between gap-2">
             {/* Mobile: open sidebar */}
@@ -56,9 +56,9 @@ export default function Home() {
               </SheetContent>
             </Sheet>
 
-            <div className="text-xl font-semibold tracking-tight">
+            <h1 className="text-xl font-semibold tracking-tight m-0" id="app-title">
               Submission Document Explorer
-            </div>
+            </h1>
 
             <div className="w-9" />
           </div>
@@ -73,9 +73,9 @@ export default function Home() {
       </div>
 
       {/* Main: sidebar | content */}
-      <div className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden" aria-label="Application workspace" role="region">
         {/* Desktop sidebar (xl and up) */}
-        <div className="hidden xl:block flex-none">
+        <div className="hidden xl:block flex-none" aria-label="Document navigation" role="navigation">
           <SideMenu collapsed={menuCollapsed} setCollapsed={setMenuCollapsed} />
         </div>
 

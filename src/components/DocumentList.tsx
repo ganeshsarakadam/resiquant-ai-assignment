@@ -39,36 +39,39 @@ const getDocumentIcon = (type: DocumentType) => {
 
 export const DocumentList = ({ documents}: DocumentListProps) => {
     const { state, setDocumentId } = useSelectionUrlState();
-    return (
-        <div className="p-4">
-        <div className="space-y-1">
-            {documents.map((doc) => {
-                const isActive = state.documentId === doc.id;
-                return (
-                    <button
-                        key={doc.id}
-                        className={`w-full cursor-pointer text-left flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
-                            isActive 
-                                ? 'bg-blue-50 border border-blue-200 text-blue-900' 
-                                : 'hover:bg-gray-100 text-gray-900'
-                        }`}
-                        onClick={() => setDocumentId(doc.id)}
-                    >
-                    <div className="flex-shrink-0">
-                        {getDocumentIcon(doc.type)}
-                    </div>
-                    <Tooltip delayDuration={500}>
-                        <TooltipTrigger asChild>
-                            <span className="text-sm font-medium text-gray-900 truncate min-w-0 flex-1">{doc.name}</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                            <p>{doc.name}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                    </button>
-                );
-            })}
-        </div>
-        </div>
-    );
+        return (
+            <div className="p-4">
+                <ul className="space-y-1" role="listbox" aria-label="Documents">
+                    {documents.map((doc) => {
+                        const isActive = state.documentId === doc.id;
+                        return (
+                            <li key={doc.id} role="option" aria-selected={isActive}>
+                                <button
+                                    type="button"
+                                    className={`w-full cursor-pointer text-left flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
+                                        isActive
+                                            ? 'bg-blue-50 border border-blue-200 text-blue-900'
+                                            : 'hover:bg-gray-100 text-gray-900'
+                                    }`}
+                                    onClick={() => setDocumentId(doc.id)}
+                                    aria-current={isActive || undefined}
+                                >
+                                    <div className="flex-shrink-0" aria-hidden="true">
+                                        {getDocumentIcon(doc.type)}
+                                    </div>
+                                    <Tooltip delayDuration={500}>
+                                        <TooltipTrigger asChild>
+                                            <span className="text-sm font-medium text-gray-900 truncate min-w-0 flex-1">{doc.name}</span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs" role="tooltip">
+                                            <p>{doc.name}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
+        );
 };
