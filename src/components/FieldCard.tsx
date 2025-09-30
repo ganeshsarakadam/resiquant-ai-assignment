@@ -8,7 +8,7 @@ import { FieldCardHeader } from "@/components/FieldCardHeader";
 import { FieldCardValue } from "@/components/FieldCardValue";
 
 
-// Static BaseCard (no motion)
+// Static non-animated BaseCard
 type BaseCardDivProps = React.HTMLAttributes<HTMLDivElement>;
 const BaseCard: React.FC<BaseCardDivProps> = ({ className, ...rest }) => (
   <div
@@ -149,8 +149,11 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
     <BaseCard
       className={cn(
         fieldCardVariants({ size, state: visualState as any }),
-        editingApi.isEditing && 'ring-2 ring-blue-500/40',
-        isActive && 'outline outline-2 outline-blue-400',
+        // Suppress any ring/outline when editing (double-click) to avoid blue ring
+        editingApi.isEditing && 'ring-0 outline-none ring-transparent',
+        !editingApi.isEditing && isActive && 'outline outline-2 outline-blue-400',
+        // If parent supplied active highlight ring classes, neutralize while editing
+        editingApi.isEditing && 'bg-white',
         className,
         'relative'
       )}

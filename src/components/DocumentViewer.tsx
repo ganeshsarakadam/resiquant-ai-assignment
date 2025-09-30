@@ -4,9 +4,7 @@ import { useSelectionUrlState } from "@/hooks/useSelectionUrlState"
 import { EmailViewer } from "@/components/EmailViewer"
 import { FileText } from "lucide-react"
 import { ImageViewer } from "@/components/ImageViewer"
-import { SheetViewer } from "@/components/SheetViewer"
 import { useState, useEffect, useRef } from "react"
-// import { PdfViewer } from "@/components/PdfViewer"
 import { getDocumentById } from "@/data"
 import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
 import { useHighlightSetter } from "@/contexts/HighlightContext"
@@ -14,6 +12,7 @@ import { ExtractedField } from "@/types"
 import { loadExtraction } from "@/lib/utils"
 import { PdfViewer } from "@/components/PdfViewer"
 import { DocxViewer } from "@/components/DocxViewer"
+import { SheetViewer } from "@/components/SheetViewer"
 
 
 interface DocumentViewerProps {
@@ -76,7 +75,6 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const domActive = (typeof window !== 'undefined') ? (window.document.activeElement as HTMLElement | null) : null;
     const withinFieldList = !!domActive?.closest('[data-field-list-container]');
         if (!withinFieldList) {
-            // Focus immediately (no timeout) so we avoid stealing focus from soon-to-be user key navigation.
             headingRef.current?.focus();
         }
     }, [document]);

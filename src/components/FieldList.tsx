@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { motion, useReducedMotion } from 'framer-motion';
 import { FileWarning, RefreshCw } from "lucide-react";
 import { FieldListViewerSkeleton } from "@/components/Skeletons/FieldListViewerSkeleton";
 import { FieldCard } from "./FieldCard";
@@ -28,8 +27,6 @@ const FieldList = () => {
     const { state } = useSelectionUrlState();
     const highlightedField = useHighlightedField();
     const highlightField = useHighlightSetter();
-
-    const prefersReducedMotion = useReducedMotion();
 
     const mergedFields = useMemo(() => (
         baseFields.map(f => (
@@ -222,7 +219,7 @@ const FieldList = () => {
                             <div className="flex gap-1">
                                 <button
                                     onClick={resetFields}
-                                    className="text-xs px-2 cursor-pointer py-1 bg-red-100 hover:bg-red-200 rounded text-red-700"
+                                    className="text-xs px-2 cursor-pointer py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
                                     title="Reset all fields to original values"
                                 >
                                     Reset to Default
@@ -230,9 +227,18 @@ const FieldList = () => {
                             </div>
                         )}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                        ↑↓ move selection • Enter (or snippet) highlights document • Click selects only • Esc clears selection
-                    </div>
+                    {
+                    baseFields.length > 0 && (
+                        <div className="mt-1">
+                            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600 leading-tight">
+                                <li className="flex items-center gap-1"><span className="inline-flex items-center gap-0.5"><kbd className="px-1 py-0.5 rounded border bg-gray-50">↑</kbd><kbd className="px-1 py-0.5 rounded border bg-gray-50">↓</kbd></span><span className="text-gray-500">navigate</span></li>
+                                <li className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded border bg-gray-50">Enter</kbd><span className="text-gray-500">highlight</span></li>
+                                <li className="flex items-center gap-1"><span className="px-1 py-0.5 rounded border bg-gray-50">snippet</span><span className="text-gray-500">= highlight</span></li>
+                                <li className="flex items-center gap-1"><span className="px-1 py-0.5 rounded border bg-gray-50">Double‑click</span><span className="text-gray-500">edit value</span></li>
+                                <li className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded border bg-gray-50">Esc</kbd><span className="text-gray-500">clear</span></li>
+                            </ul>
+                        </div>
+                    )}
                 </div>
             )}
             {/* Scrollable list region */}
@@ -265,7 +271,7 @@ const FieldList = () => {
                                     disabled={isLoading}
                                     className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <RefreshCw className={"h-3 w-3 "} />
+                                    <RefreshCw className={"h-3 w-3 cursor-pointer"} />
                                 </button>
                             </div>
                         </div>
@@ -277,49 +283,29 @@ const FieldList = () => {
                     const isHighlighted = highlightedField?.id === field.id; // document highlight state
                     const isActive = activeIndex === index || isHighlighted; // active selection OR highlighted
                     return (
-                        <motion.div
+                        <FieldCard
                             key={field.id}
-                            layout
-                            initial={false}
-                            animate={isActive ? 'active' : 'inactive'}
-                            variants={prefersReducedMotion ? undefined : {
-                                inactive: { scale: 1, y: 0 },
-                                active: {
-                                    scale: 1.015,
-                                    y: -2,
-                                    transition: {
-                                        type: 'spring',
-                                        stiffness: 420,
-                                        damping: 28,
-                                        mass: 0.65
-                                    }
-                                }
-                            }}
-                            style={{ willChange: 'transform' }}
-                        >
-                            <FieldCard
-                                id={`field-${field.id}`}
-                                data-field-value={field.id}
-                                data-field-index={index}
-                                data-active={isActive || undefined}
-                                label={field.name}
-                                value={effectiveValue}
-                                placeholder={field.originalValue}
-                                onEdit={(v) => handleEdit(field.id, v)}
-                                onCancel={() => handleCancelEdit(field.id)}
-                                onDelete={() => { }}
-                                onClick={() => setActiveIndex(index)}
-                                editable
-                                disabled={false}
-                                status={isModified ? 'modified' : 'original'}
-                                onCopy={() => { }}
-                                confidence={field.confidence}
-                                provenanceSnippet={field.provenance?.snippet}
-                                onSnippetClick={() => highlightField(field)}
-                                isActive={isActive}
-                                className={`transition-colors ${isActive ? "ring-2 ring-blue-500/70 outline-2 bg-blue-50/60 shadow-sm" : ""}`}
-                            />
-                        </motion.div>
+                            id={`field-${field.id}`}
+                            data-field-value={field.id}
+                            data-field-index={index}
+                            data-active={isActive || undefined}
+                            label={field.name}
+                            value={effectiveValue}
+                            placeholder={field.originalValue}
+                            onEdit={(v) => handleEdit(field.id, v)}
+                            onCancel={() => handleCancelEdit(field.id)}
+                            onDelete={() => { }}
+                            onClick={() => setActiveIndex(index)}
+                            editable
+                            disabled={false}
+                            status={isModified ? 'modified' : 'original'}
+                            onCopy={() => { }}
+                            confidence={field.confidence}
+                            provenanceSnippet={field.provenance?.snippet}
+                            onSnippetClick={() => highlightField(field)}
+                            isActive={isActive}
+                            className={`transition-colors ${isActive ? "ring-2 ring-blue-500/70 outline-2 bg-blue-50/60 shadow-sm" : ""}`}
+                        />
                     );
                 })}
             </div>
