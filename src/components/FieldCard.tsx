@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from "react";
+import React, { useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
 import { motion } from "framer-motion";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useFieldCardEditing } from "@/hooks/useFieldCardEditing";
@@ -10,19 +10,20 @@ import { FieldCardValue } from "@/components/FieldCardValue";
 
 
 type MotionDivProps = React.ComponentProps<typeof motion.div>;
-const BaseCard: React.FC<MotionDivProps> = ({ className, ...rest }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 4 }}
-            transition={{ duration: 0.18, ease: [0.22, 0.98, 0.52, 0.99] }}
-            whileHover={{ y: -2, boxShadow: "0 4px 10px -2px rgba(0,0,0,0.08)" }}
-            whileTap={{ scale: 0.985 }}
-            className={cn("bg-white border rounded-md shadow-sm will-change-transform", className)}
-            {...rest}
-        />
-    );
+// BaseCard now allows callers to override the animate prop so focus/highlight animation works via parent
+const BaseCard: React.FC<MotionDivProps> = ({ className, animate, whileHover, transition, ...rest }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97, y: 4 }}
+      animate={animate || { opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96, y: 4 }}
+      transition={transition || { duration: 0.18, ease: [0.22, 0.98, 0.52, 0.99] }}
+      whileHover={whileHover || { y: -2, boxShadow: "0 4px 10px -2px rgba(0,0,0,0.08)" }}
+      whileTap={{ scale: 0.985 }}
+      className={cn("bg-white border rounded-md shadow-sm will-change-transform", className)}
+      {...rest}
+    />
+  );
 };
 
 const fieldCardVariants = cva(
@@ -36,7 +37,8 @@ const fieldCardVariants = cva(
             },
       state: {
         normal: "",
-        modified: "border-amber-400 bg-amber-50/40",
+          // Remove yellow styling for modified fields; keep base look (could add a subtle dot later if needed)
+        modified: "",
         disabled: "opacity-60 cursor-not-allowed bg-gray-50",
       },
         },
@@ -75,6 +77,7 @@ export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, 
   className?: string;
   // live updates always enabled with fixed 250ms debounce (props removed)
   onClick?: React.MouseEventHandler<HTMLDivElement>;
+  isActive?: boolean; // new: active (focused or highlighted) visual state
 }
 
 export interface FieldCardHandle {
@@ -102,16 +105,11 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
   className,
   status,
   onClick,
+  isActive = false,
   ...rest } = props;
 
-  const [wasModified, setWasModified] = useState(status === 'modified');
-  // If parent resets field to original, clear local modified flag so style reverts
-useEffect(() => {
-    if (status === 'original' && wasModified) {
-      setWasModified(false);
-    }
-  }, [status, wasModified]);
-  const modifiedRef = useRef(value);
+  // Derive modified state directly: either status prop or value differs from placeholder
+  const wasModified = useMemo(() => status === 'modified' || value !== placeholder, [status, value, placeholder]);
 
   const sizeClasses = {
     default: { label: 'text-sm font-medium', value: 'text-sm', provenance: '' },
@@ -120,10 +118,7 @@ useEffect(() => {
   } as const;
   const sz = sizeClasses[size];
 
-  const handleConfirm = useCallback(() => {
-    setWasModified(true);
-    modifiedRef.current = value;
-  }, [value]);
+  const handleConfirm = useCallback(() => {/* no-op: parent already updated */}, []);
 
   const editingApi = useFieldCardEditing({
     value,
@@ -162,25 +157,21 @@ useEffect(() => {
         fieldCardVariants({ size, state: visualState as any }),
         editingApi.isEditing && 'ring-2 ring-blue-500/40',
         className,
-        // ensure highlighted outline is above variant borders
         'relative'
       )}
       role="group"
       onClick={onClick}
       aria-disabled={disabled || undefined}
       data-label={label}
-  data-editing={editingApi.isEditing || undefined}
-  // filter out conflicting callbacks
-  {...Object.fromEntries(Object.entries(rest).filter(([k]) => !['onCopy','onDelete'].includes(k)))}
+      data-editing={editingApi.isEditing || undefined}
+      data-active={isActive || undefined}
+      animate={isActive ? { opacity: 1, scale: 1.015, y: -3 } : { opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+      layout="position"
+      {...Object.fromEntries(Object.entries(rest).filter(([k]) => !['onCopy','onDelete'].includes(k)))}
     >
       <div className="flex flex-col gap-1 pr-8" aria-live="polite">
-        <FieldCardHeader
-          label={label}
-          wasModified={wasModified}
-          status={status}
-          sizeClasses={{ label: sz.label }}
-          confidence={confidence}
-        />
+        <FieldCardHeader label={label} wasModified={wasModified} status={status} sizeClasses={{ label: sz.label }} confidence={confidence} />
         <FieldCardValue
           value={value}
           placeholder={placeholder}
