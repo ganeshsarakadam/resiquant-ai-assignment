@@ -1,14 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
+import React, { forwardRef, useImperativeHandle, useMemo } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useFieldCardEditing } from "@/hooks/useFieldCardEditing";
 import { FieldCardHeader } from "@/components/FieldCardHeader";
 import { FieldCardValue } from "@/components/FieldCardValue";
 
 
-// Static non-animated BaseCard
 type BaseCardDivProps = React.HTMLAttributes<HTMLDivElement>;
 const BaseCard: React.FC<BaseCardDivProps> = ({ className, ...rest }) => (
   <div
@@ -44,7 +43,7 @@ const fieldCardVariants = cva(
     }
 );
 
-// Allow passing arbitrary data-* attributes (restricted to primitive serializable values) and id for scrolling/highlight
+
 type DataAttrPrimitive = string | number | boolean | undefined;
 type DataAttributes = { [K in `data-${string}`]?: DataAttrPrimitive };
 type ExtraDivProps = DataAttributes & { id?: string };
@@ -55,9 +54,9 @@ export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, 
     placeholder: string;
     status: "modified" | "original";
     onEdit: (value: string) => void;
-    onCopy: (copied: string) => void; // retained for compatibility (not used yet)
-    onDelete: () => void; // retained for compatibility (not used yet)
-  onCancel?: () => void; // new: invoked when user cancels editing
+    onCopy: (copied: string) => void;
+    onDelete: () => void; 
+    onCancel?: () => void; 
     editable: boolean;
     disabled: boolean;
     variant?: never;
@@ -68,9 +67,8 @@ export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, 
     maxSnippetChars?: number;
   onEditingChange?: (editing: boolean) => void;
   className?: string;
-  // live updates always enabled with fixed 250ms debounce (props removed)
   onClick?: React.MouseEventHandler<HTMLDivElement>;
-  isActive?: boolean; // new: active (focused or highlighted) visual state
+  isActive?: boolean; 
 }
 
 export interface FieldCardHandle {
@@ -85,8 +83,8 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
     value,
     placeholder,
     onEdit,
-    onCopy, // keep extracted but do not spread
-    onDelete, // keep extracted but do not spread
+    onCopy,
+    onDelete,
     editable,
     disabled,
     size = "default",
@@ -101,42 +99,75 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
   isActive = false,
   ...rest } = props;
 
-  // Derive modified state directly: either status prop or value differs from placeholder
+
   const wasModified = useMemo(() => status === 'modified' || value !== placeholder, [status, value, placeholder]);
 
-  const sizeClasses = {
+  /**
+   * Size styles for label and value text based on size variant
+   * - default: regular padding and font sizes
+   * - compact: reduced padding and slightly smaller fonts
+   * - ultra: minimal padding and smallest fonts
+   */
+  const SIZE_STYLES = useMemo(() => ({
     default: { label: 'text-sm font-medium', value: 'text-sm', provenance: '' },
     compact: { label: 'text-xs font-medium', value: 'text-xs', provenance: '' },
     ultra: { label: 'text-[11px] font-medium', value: 'text-[11px]', provenance: '' },
-  } as const;
-  const sz = sizeClasses[size];
+  } as const), []);
+  const sz = SIZE_STYLES[size];
 
-  const handleConfirm = useCallback(() => {/* no-op: parent already updated */}, []);
 
+  /**
+   * Editing state management via custom hook
+   * - handles isEditing, draft value, input ref, and edit lifecycle (start, confirm, cancel)
+   * - disables editing if not editable or disabled
+   * - calls onEdit when confirmed with changed value
+   * - calls onCancel prop if provided when edit is cancelled
+   * - notifies parent of editing state changes via onEditingChange callback
+   */
   const editingApi = useFieldCardEditing({
     value,
     editable,
     disabled,
     onEdit,
-    onConfirm: handleConfirm,
+    onConfirm: () => {},
   onCancel: props.onCancel || (() => {}),
     onEditingChange,
   });
 
+
+  /**
+   * Expose imperative methods to parent via ref
+   * - focus: focus the input if editing
+   * - startEdit: begin editing mode
+   * - cancelEdit: cancel current edit and revert value
+   */
   useImperativeHandle(ref, () => ({
     focus: () => editingApi.inputRef.current?.focus(),
     startEdit: () => editingApi.startEdit(),
     cancelEdit: () => editingApi.cancelEdit(),
   }));
 
-  const truncatedSnippet = provenanceSnippet && provenanceSnippet.length > maxSnippetChars
-    ? provenanceSnippet.slice(0, maxSnippetChars - 1).trimEnd() + '…'
-    : provenanceSnippet;
+
+  /**
+   * Truncate provenance snippet if too long, adding ellipsis
+   * - shows full snippet on hover via title attribute
+   * - maxSnippetChars controls truncation length (default 120)
+   */
+  const truncatedSnippet = useMemo(() => {
+    if (!provenanceSnippet) return provenanceSnippet;
+    if (provenanceSnippet.length <= maxSnippetChars) return provenanceSnippet;
+    return provenanceSnippet.slice(0, maxSnippetChars - 1).trimEnd() + '…';
+  }, [provenanceSnippet, maxSnippetChars]);
 
   const isEmpty = !value;
 
-  // Determine visual state: suppress amber modified ring while actively editing so only blue shows
-  const visualState = disabled
+/**
+ * Determine visual state for styling
+ * - disabled: when disabled prop is true
+ * - normal: when editing or unmodified
+ * - modified: when not editing and value was modified (differs from placeholder or status is 'modified')
+ */
+  const visualState: 'normal' | 'modified' | 'disabled' = disabled
     ? 'disabled'
     : editingApi.isEditing
       ? 'normal'
@@ -147,17 +178,18 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
   return (
     <BaseCard
       className={cn(
-  fieldCardVariants({ size, state: visualState as 'normal' | 'modified' | 'disabled' }),
-        // Suppress any ring/outline when editing (double-click) to avoid blue ring
+  fieldCardVariants({ size, state: visualState }),
         editingApi.isEditing && 'ring-0 outline-none ring-transparent',
         !editingApi.isEditing && isActive && 'outline outline-2 outline-blue-400',
-        // If parent supplied active highlight ring classes, neutralize while editing
         editingApi.isEditing && 'bg-white',
         className,
         'relative'
       )}
-      role="group"
-      onClick={onClick}
+  role="group"
+      onClick={(e) => {
+        if (editingApi.isEditing) { e.stopPropagation(); return; }
+        onClick?.(e);
+      }}
       aria-disabled={disabled || undefined}
       data-label={label}
       data-editing={editingApi.isEditing || undefined}
@@ -186,9 +218,7 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
             type="button"
             onClick={(e) => {
               onSnippetClick?.(provenanceSnippet!);
-              // Prevent focus from staying on this button
               e.currentTarget.blur();
-              // Move focus back to container
               const container = document.querySelector('[data-field-list-container]');
               if (container) {
                 (container as HTMLElement).focus();
@@ -196,7 +226,6 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
             }}
             onKeyDown={(e) => {
               if (e.key === 'Tab') {
-                // When tabbing from snippet, ensure focus moves properly to next element
                 e.currentTarget.blur();
               }
             }}

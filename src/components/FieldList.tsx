@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { FileWarning, RefreshCw } from "lucide-react";
 import { FieldListViewerSkeleton } from "@/components/Skeletons/FieldListViewerSkeleton";
 import { FieldCard } from "./FieldCard";
@@ -9,9 +9,12 @@ import { loadExtractionData } from "@/data/extractions";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
 import { useHighlightedField, useHighlightSetter } from "@/contexts/HighlightContext";
 
+/**
+ * Prefix for storing modified fields in localStorage
+ * @constant {string}
+ */
 const MODIFIED_FIELDS_STORAGE_PREFIX = 'modified_fields_';
 
-// LocalStorage schema: array of { id, modifiedValue } persisted per submission
 
 interface VersionedField extends ExtractedField {
     originalValue: string;
@@ -20,21 +23,31 @@ interface VersionedField extends ExtractedField {
 
 const FieldList = () => {
     const [baseFields, setBaseFields] = useState<VersionedField[]>([]);
-    const [modMap, setModMap] = useState<Record<string, string>>({}); // id -> modifiedValue
+    const [modMap, setModMap] = useState<Record<string, string>>({}); 
     const [isLoading, setIsLoading] = useState(true);
-    const [attemptedLoad, setAttemptedLoad] = useState(false); // tracks if we actually tried to load for a submission
+    const [attemptedLoad, setAttemptedLoad] = useState(false); 
     const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
-    const [activeIndex, setActiveIndex] = useState<number>(-1); // keyboard/mouse selection (not yet highlighted)
+    const [activeIndex, setActiveIndex] = useState<number>(-1); 
     const { state } = useSelectionUrlState();
     const highlightedField = useHighlightedField();
     const highlightField = useHighlightSetter();
 
+    /**
+     * Merge base fields with modified values
+     * @returns Merged array of fields with modifications applied
+     * @description This is the mergedFields function that merges base fields with modified values
+     */
     const mergedFields = useMemo(() => (
         baseFields.map(f => (
             modMap[f.id] !== undefined ? { ...f, modifiedValue: modMap[f.id] } : f
         ))
     ), [baseFields, modMap]);
 
+    /**
+     * Load modified fields from localStorage
+     * @returns void
+     * @description This is the loadModifiedFields function that loads modified fields from localStorage
+     */
     const loadModifiedFields = useCallback((submissionId: string) => {
         try {
             const stored = localStorage.getItem(`${MODIFIED_FIELDS_STORAGE_PREFIX}${submissionId}`);
@@ -48,6 +61,11 @@ const FieldList = () => {
         }
     }, []);
 
+    /**
+     * Persist modified fields to localStorage
+     * @returns void
+     * @description This is the persistMods function that saves modified fields to localStorage
+     */
     const persistMods = useCallback((submissionId: string, map: Record<string, string>) => {
         try {
             const arr = Object.entries(map).map(([id, modifiedValue]) => ({ id, modifiedValue }));
@@ -60,7 +78,7 @@ const FieldList = () => {
      * @returns void
      * @description This is the useEffect hook that reacts to context highlight requests and scrolls to the highlighted field
      */
-    // Highlight + scroll (single effect)
+    
     useEffect(() => {
         if (!highlightedField) return;
         const id = highlightedField.id;
@@ -74,39 +92,54 @@ const FieldList = () => {
         return () => clearTimeout(t);
     }, [highlightedField, mergedFields]);
 
-    // Sync activeIndex when a field becomes highlighted externally (snippet or other trigger)
+    
+    /**
+     * Sync activeIndex with highlightedField changes
+     * @returns void
+     * @description This is the useEffect hook that syncs activeIndex with highlightedField changes
+     */
     useEffect(() => {
         if (!highlightedField) return;
         const idx = mergedFields.findIndex(f => f.id === highlightedField.id);
         if (idx !== -1) setActiveIndex(idx);
     }, [highlightedField, mergedFields]);
 
-    // Keyboard navigation: arrows change activeIndex only; Enter triggers highlight
+    
+    const mergedFieldsRef = useRef(mergedFields);
+    const activeIndexRef = useRef(activeIndex);
+    const highlightRef = useRef(highlightField);
+    useEffect(() => { mergedFieldsRef.current = mergedFields; }, [mergedFields]);
+    useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
+    useEffect(() => { highlightRef.current = highlightField; }, [highlightField]);
+
+    /**
+     * Handle keyboard navigation within the field list
+     * @returns void
+     * @description This is the useEffect hook that handles keyboard navigation within the field list
+     */
     useEffect(() => {
         const handleKeyDown = (event: Event) => {
             const e = event as KeyboardEvent;
-            if (mergedFields.length === 0) return;
+            const fields = mergedFieldsRef.current;
+            if (fields.length === 0) return;
+            if ((e.target as HTMLElement | null)?.closest('[data-editing="true"]')) return;
+            if (document.querySelector('[data-editing="true"]')) return;
             switch (e.key) {
                 case 'ArrowDown': {
                     e.preventDefault();
                     setIsKeyboardNavigating(true);
-                    setActiveIndex(prev => {
-                        if (prev < 0) return 0;
-                        return (prev + 1) % mergedFields.length;
-                    });
+                    setActiveIndex(prev => prev < 0 ? 0 : (prev + 1) % fields.length);
                     break; }
                 case 'ArrowUp': {
                     e.preventDefault();
                     setIsKeyboardNavigating(true);
-                    setActiveIndex(prev => {
-                        if (prev < 0) return mergedFields.length - 1;
-                        return (prev - 1 + mergedFields.length) % mergedFields.length;
-                    });
+                    setActiveIndex(prev => prev < 0 ? fields.length - 1 : (prev - 1 + fields.length) % fields.length);
                     break; }
                 case 'Enter': {
-                    if (activeIndex >= 0 && activeIndex < mergedFields.length) {
+                    const idx = activeIndexRef.current;
+                    if (idx >= 0 && idx < fields.length) {
                         e.preventDefault();
-                        highlightField(mergedFields[activeIndex]);
+                        highlightRef.current(fields[idx]);
                     }
                     break; }
                 case 'Escape': {
@@ -117,13 +150,16 @@ const FieldList = () => {
             }
         };
         const container = document.querySelector('[data-field-list-container]');
-        if (container) {
-            container.addEventListener('keydown', handleKeyDown);
-            return () => container.removeEventListener('keydown', handleKeyDown);
-        }
-    }, [mergedFields, activeIndex, highlightField]);
+        if (!container) return;
+        container.addEventListener('keydown', handleKeyDown);
+        return () => container.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
-    // Scroll active field into view when navigating via keyboard
+    /**
+        * Scroll active item into view when navigating via keyboard
+        * @returns void
+        * @description This is the useEffect hook that scrolls the active item into view when navigating via keyboard
+     */
     useEffect(() => {
         if (activeIndex < 0 || !isKeyboardNavigating) return;
         const field = mergedFields[activeIndex];
@@ -148,10 +184,15 @@ const FieldList = () => {
         loadModifiedFields(state.submissionId);
     }, [state.submissionId, loadModifiedFields]);
 
+
+    /**
+     * Load fields when submissionId changes
+     * @returns void
+     * @description This is the useEffect hook that loads the fields when the submissionId changes
+     */
     useEffect(() => {
         const loadFields = async () => {
             if (!state.submissionId) {
-                // Reset to pristine if submission cleared
                 setIsLoading(false);
                 setAttemptedLoad(false);
                 setBaseFields([]);
@@ -186,27 +227,21 @@ const FieldList = () => {
         setModMap(prev => {
             if (!state.submissionId) return prev;
             const base = baseFields.find(f => f.id === id);
-            if (!base) return prev; // ignore unknown
+            if (!base) return prev; 
             const next = { ...prev, [id]: newValue };
-            // If value matches original remove entry
+            
             if (newValue === base.originalValue) { delete next[id]; }
             persistMods(state.submissionId, next);
             return next;
         });
     }, [baseFields, state.submissionId, persistMods]);
 
-    // Revert a modified field when user cancels while draft differs from original and hasn't been confirmed
-    const handleCancelEdit = useCallback((id: string) => {
-        if (!state.submissionId) return;
-        setModMap(prev => {
-            if (!(id in prev)) return prev;
-            const next = { ...prev }; delete next[id];
-            persistMods(state.submissionId!, next);
-            return next;
-        });
-    }, [state.submissionId, persistMods]);
+    
+    const handleCancelEdit = useCallback((_id: string) => {
+        
+    }, []);
 
-    // Utility function to reset all fields to original values
+    
     const resetFields = useCallback(async () => {
         if (!state.submissionId) return;
         setModMap({});
@@ -302,8 +337,8 @@ const FieldList = () => {
                 {!isLoading && mergedFields.length > 0 && mergedFields.map((field, index) => {
                     const effectiveValue = field.modifiedValue ?? field.value;
                     const isModified = field.modifiedValue !== undefined && field.modifiedValue !== field.originalValue;
-                    const isHighlighted = highlightedField?.id === field.id; // document highlight state
-                    const isActive = activeIndex === index || isHighlighted; // active selection OR highlighted
+                    const isHighlighted = highlightedField?.id === field.id; 
+                    const isActive = activeIndex === index || isHighlighted; 
                     return (
                         <FieldCard
                             key={field.id}

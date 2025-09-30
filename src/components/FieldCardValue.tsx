@@ -19,6 +19,16 @@ interface Props {
   sizeClasses: { value: string };
 }
 
+const handleKeyDown = (e: React.KeyboardEvent, confirmEdit: () => void, cancelEdit: () => void) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmEdit();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    cancelEdit();
+  }
+}
+
 export const FieldCardValue: React.FC<Props> = ({
   value,
   placeholder,
@@ -41,7 +51,7 @@ export const FieldCardValue: React.FC<Props> = ({
           className={cn(
             sizeClasses.value,
             'text-gray-700 break-words whitespace-pre-wrap',
-            editable && !disabled && 'cursor-text'
+            editable && !disabled && 'cursor-pointer'
           )}
           onDoubleClick={() => { if (!isEditing && editable && !disabled) startEdit(); }}
           title={editable && !disabled ? 'Double-click to edit' : undefined}
@@ -53,15 +63,14 @@ export const FieldCardValue: React.FC<Props> = ({
       {isEditing && (
         <div
           className="flex items-center gap-2 w-full mt-1 animate-none"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <Input
             ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); confirmEdit(); }
-              else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
-            }}
+            onKeyDown={(e) => handleKeyDown(e, confirmEdit, cancelEdit)}
             className="flex-1 text-xs h-8"
             aria-label={`Edit ${placeholder}`}
             disabled={disabled}
@@ -70,7 +79,7 @@ export const FieldCardValue: React.FC<Props> = ({
           />
           <button
             type="button"
-            onClick={confirmEdit}
+            onClick={(e) => { e.stopPropagation(); confirmEdit(); }}
             className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-green-500 text-white shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors active:scale-[0.97]"
             aria-label="Confirm edit"
             title="Confirm"
@@ -79,7 +88,7 @@ export const FieldCardValue: React.FC<Props> = ({
           </button>
           <button
             type="button"
-            onClick={cancelEdit}
+            onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
             className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-muted/40 bg-gray-200 text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition-colors active:scale-[0.97]"
             aria-label="Cancel edit"
             title="Cancel"

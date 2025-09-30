@@ -41,13 +41,29 @@ export const FieldCardHeader: React.FC<Props> = ({
       </div>
       {confidence !== undefined && (
         <div className="absolute top-1 right-1">
-          <Badge
-            variant={confidence >= 0.9 ? 'default' : confidence >= 0.6 ? 'secondary' : confidence >= 0.4 ? 'outline' : 'destructive'}
-            aria-label={`Confidence ${(confidence * 100).toFixed(1)} percent`}
-            title={`Confidence: ${(confidence * 100).toFixed(1)}%`}
-          >
-            {(confidence * 100).toFixed(0)}%
-          </Badge>
+          {(() => {
+            const pct = confidence * 100;
+            let colorClasses = '';
+            if (pct >= 90) {
+              colorClasses = 'bg-green-100 text-green-800 border-green-300';
+            } else if (pct >= 70) {
+              colorClasses = 'bg-amber-100 text-amber-800 border-amber-300';
+            } else if (pct < 60) {
+              colorClasses = 'bg-red-100 text-red-800 border-red-300';
+            } else {
+              colorClasses = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+            }
+            return (
+              <Badge
+                variant="outline"
+                className={cn('text-[10px] px-1 py-0 h-4 leading-none tracking-wide', colorClasses)}
+                aria-label={`Confidence ${pct.toFixed(1)} percent`}
+                title={`Confidence: ${pct.toFixed(1)}%`}
+              >
+                {pct.toFixed(0)}%
+              </Badge>
+            );
+          })()}
         </div>
       )}
     </div>
