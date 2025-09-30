@@ -31,7 +31,12 @@ interface SheetData {
   rowHeights?: number[];
   merges?: XLSX.Range[];
 }
-// Utility to yield control to the browser between heavy chunks
+
+/**
+ * Yield to browser to prevent blocking the main thread
+ * @returns void
+ * @description This is the yieldToBrowser function that yields to the browser to prevent blocking the main thread
+ */
 const yieldToBrowser = async () => {
   if (typeof (window as any).requestIdleCallback === 'function') {
     await new Promise(res => (window as any).requestIdleCallback(res, { timeout: 60 }));
@@ -40,7 +45,12 @@ const yieldToBrowser = async () => {
   }
 };
 
-// Memoized table to prevent re-renders unless sheet data or fields change
+/**
+ * Memoized table to prevent re-renders unless sheet data or fields change
+ * @param param0 
+ * @returns 
+ * @description This is the SheetTable component that renders the table
+ */
 const SheetTable = React.memo(({
   sheet,
   extractedFields = [],
@@ -52,21 +62,51 @@ const SheetTable = React.memo(({
   onHighlightClick?: (field: ExtractedField) => void;
   decodeCell?: (addr: string) => { r: number; c: number };
 }) => {
-  const [visibleRows, setVisibleRows] = useState(200); // initial render cap
-  // Log re-renders
-  // Debug render trace (commented out to reduce console noise)
-  // console.log('[SheetTable] Re-rendered with props:', { sheetName: sheet.name, fieldsCount: extractedFields.length });
+  /**
+   * Set the initial number of visible rows
+   * @returns void
+   * @description This is the visibleRows state that sets the initial number of visible rows
+   */
+  const [visibleRows, setVisibleRows] = useState(100); 
 
+  /**
+   * Set the container reference
+   * @returns void
+   * @description This is the containerRef state that sets the container reference
+   */
   const containerRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Set the table reference
+   * @returns void
+   * @description This is the tableRef state that sets the table reference
+   */
   const tableRef = useRef<HTMLTableElement>(null);
+
+  /**
+   * Set the container size
+   * @returns void
+   * @description This is the containerSize state that sets the container size
+   */
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  /**
+   * Set the cell widths
+   * @returns void
+   * @description This is the cellWidths state that sets the cell widths
+   */
   const [cellWidths, setCellWidths] = useState<number[]>([]);
   const [cellHeights, setCellHeights] = useState<number[]>([]);
   const [totalTableHeight, setTotalTableHeight] = useState(0);
   const [totalTableWidth, setTotalTableWidth] = useState(0);
   const [containerPadding, setContainerPadding] = useState({ left: 0, top: 0 });
 
-  // Update container size and cell dimensions
+
+  /**
+   * Update container size and cell dimensions
+   * @returns void
+   * @description This is the useEffect hook that updates the container size and cell dimensions when the container or table reference changes
+   */
   useEffect(() => {
     let frame = 0;
     const measure = () => {
@@ -97,12 +137,22 @@ const SheetTable = React.memo(({
     };
   }, [sheet.colWidths, sheet.rowHeights, sheet.data]);
 
+  /**
+   * If the sheet data is empty, return a message
+   * @returns void
+   * @description This is the SheetTable component that returns a message if the sheet data is empty
+   */
   if (!sheet.data.length) {
     return <div className="flex items-center justify-center h-full text-gray-500">Empty sheet</div>;
   }
 
   const maxColumns = Math.max(...sheet.data.map(r => r.length));
   const displayData = sheet.data.slice(0, visibleRows);
+
+  /**
+   * @returns void
+   * @description This is the excelBoxes state that calculates the excel boxes for the extracted fields based on the cell range
+   */
   const excelBoxes: [number, number, number, number][] = extractedFields
     .map(f => {
       const cellRange = f.provenance.cellRange as any;

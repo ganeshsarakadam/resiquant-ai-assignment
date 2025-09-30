@@ -1,7 +1,8 @@
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Check, X } from 'lucide-react';
 
 interface Props {
   value: string;
@@ -77,21 +78,21 @@ export const FieldCardValue: React.FC<Props> = ({
             type="button"
             onClick={confirmEdit}
             whileTap={{ scale: 0.9 }}
-            className="p-2 h-8 min-w-[32px] cursor-pointer rounded bg-green-500 hover:bg-green-600 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center justify-center"
+            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-green-500 text-white shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors"
             aria-label="Confirm edit"
             title="Confirm"
           >
-            ✓
+            <Check className="h-4 w-4 cursor-pointer" />
           </motion.button>
           <motion.button
             type="button"
             onClick={cancelEdit}
             whileTap={{ scale: 0.9 }}
-            className="p-2 h-8 min-w-[32px] rounded cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center"
+            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-muted/40 bg-gray-200 text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition-colors"
             aria-label="Cancel edit"
             title="Cancel"
           >
-            ✕
+            <X className="h-4 w-4 cursor-pointer" />
           </motion.button>
         </motion.div>
       )}

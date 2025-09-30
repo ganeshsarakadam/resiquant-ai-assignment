@@ -14,6 +14,7 @@ export async function loadExtraction(submissionId: string): Promise<ExtractionDa
   if (!submissionId) return null
   const path = `/data/extraction_${submissionId}.json`
   try {
+    await delay(500);
     const res = await fetch(path)
     if (!res.ok) return null
     const data = await res.json() as ExtractionData
@@ -22,4 +23,9 @@ export async function loadExtraction(submissionId: string): Promise<ExtractionDa
     console.warn('loadExtraction failed', e)
     return null
   }
+}
+
+
+export function delay(ms: number) {
+  return new Promise( resolve => setTimeout(resolve, ms) );
 }

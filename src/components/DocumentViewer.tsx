@@ -15,6 +15,7 @@ import { loadExtraction } from "@/lib/utils"
 import { PdfViewer } from "@/components/PdfViewer"
 import { DocxViewer } from "@/components/DocxViewer"
 
+
 interface DocumentViewerProps {
     onFieldHighlight?: (id: string) => void;
 }

@@ -63,13 +63,13 @@ const excelToPixel = (
   const height = cellHeightPx / totalTableHeight;
 
   // Debug trace (can be removed or gated later)
-  console.log('[HighlightOverlay] Excel cell normalized:', {
-    row, col, rowSpan, colSpan,
-    xPct: (x * 100).toFixed(2) + '%',
-    yPct: (y * 100).toFixed(2) + '%',
-    wPct: (width * 100).toFixed(2) + '%',
-    hPct: (height * 100).toFixed(2) + '%'
-  });
+  // // console.log('[HighlightOverlay] Excel cell normalized:', {
+  //   row, col, rowSpan, colSpan,
+  //   xPct: (x * 100).toFixed(2) + '%',
+  //   yPct: (y * 100).toFixed(2) + '%',
+  //   wPct: (width * 100).toFixed(2) + '%',
+  //   hPct: (height * 100).toFixed(2) + '%'
+  // });
 
   return [x, y, width, height];
 };
@@ -128,9 +128,9 @@ export const HighlightOverlay = memo(({
 
   // Convert & validate boxes
   const normalizedBoxes = useMemo(() => {
-    console.log('[HighlightOverlay] Input boxes:', boxes);
+    // console.log('[HighlightOverlay] Input boxes:', boxes);
     if (!boxes || boxes.length === 0) {
-      console.log('[HighlightOverlay] No boxes provided');
+      // console.log('[HighlightOverlay] No boxes provided');
       return [] as NormalizedBBox[];
     }
     if (documentType === 'xlsx') {

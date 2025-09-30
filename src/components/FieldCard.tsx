@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useFieldCardEditing } from "@/hooks/useFieldCardEditing";
@@ -62,6 +62,7 @@ export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, 
     onEdit: (value: string) => void;
     onCopy: (copied: string) => void; // retained for compatibility (not used yet)
     onDelete: () => void; // retained for compatibility (not used yet)
+  onCancel?: () => void; // new: invoked when user cancels editing
     editable: boolean;
     disabled: boolean;
     variant?: never;
@@ -70,7 +71,7 @@ export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, 
     provenanceSnippet?: string;
     onSnippetClick?: (snippet: string) => void;
     maxSnippetChars?: number;
-    onEditingChange?: (editing: boolean) => void;
+  onEditingChange?: (editing: boolean) => void;
   className?: string;
   // live updates always enabled with fixed 250ms debounce (props removed)
   onClick?: React.MouseEventHandler<HTMLDivElement>;
@@ -104,6 +105,12 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
   ...rest } = props;
 
   const [wasModified, setWasModified] = useState(status === 'modified');
+  // If parent resets field to original, clear local modified flag so style reverts
+useEffect(() => {
+    if (status === 'original' && wasModified) {
+      setWasModified(false);
+    }
+  }, [status, wasModified]);
   const modifiedRef = useRef(value);
 
   const sizeClasses = {
@@ -124,7 +131,7 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
     disabled,
     onEdit,
     onConfirm: handleConfirm,
-    onCancel: () => {},
+  onCancel: props.onCancel || (() => {}),
     onEditingChange,
   });
 
@@ -154,7 +161,9 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
       className={cn(
         fieldCardVariants({ size, state: visualState as any }),
         editingApi.isEditing && 'ring-2 ring-blue-500/40',
-        className
+        className,
+        // ensure highlighted outline is above variant borders
+        'relative'
       )}
       role="group"
       onClick={onClick}

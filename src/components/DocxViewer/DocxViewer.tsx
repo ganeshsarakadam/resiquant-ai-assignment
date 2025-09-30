@@ -155,3 +155,5 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
     </div>
   );
 };
+
+export default DocxViewer;

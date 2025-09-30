@@ -30,11 +30,11 @@ export const PdfCarousel = ({
       const idx = api.selectedScrollSnap();
       const newPage = idx + 1;
       if (newPage !== currentPage) {
-        console.log('[PdfCarousel] Carousel select -> updating page', { from: currentPage, to: newPage });
+        // console.log('[PdfCarousel] Carousel select -> updating page', { from: currentPage, to: newPage });
         setCurrentPage(newPage);
         try { onPageChange?.(newPage); } catch (e) { console.warn('[PdfCarousel] onPageChange error', e); }
       } else {
-        console.log('[PdfCarousel] Carousel select -> no change (same page)', newPage);
+        // console.log('[PdfCarousel] Carousel select -> no change (same page)', newPage);
       }
     };
     api.on('select', handleSelect);
@@ -57,7 +57,7 @@ export const PdfCarousel = ({
         {numPages > 0 && Array.from({ length: numPages }).map((_, i) => {
           const pageNumber = i + 1
           const pageFields = fieldsByPage.get(pageNumber) || []
-          console.log('pageFields', pageFields)
+          // console.log('pageFields', pageFields)
           return (
             <CarouselItem key={pageNumber} className="h-full flex items-center justify-center bg-gray-100">
               <PdfPage

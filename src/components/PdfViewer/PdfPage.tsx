@@ -23,7 +23,7 @@ export const PdfPage = ({ pageNumber, pageFields, onHighlightClick }: PdfPagePro
     const updateSize = () => {
       if (containerRef.current) {
         const { clientWidth, clientHeight } = containerRef.current
-        console.log(`[PdfPage ${pageNumber}] Container size:`, { clientWidth, clientHeight })
+        // console.log(`[PdfPage ${pageNumber}] Container size:`, { clientWidth, clientHeight })
         setContainerSize({ width: clientWidth, height: clientHeight })
       }
     }
@@ -48,7 +48,7 @@ export const PdfPage = ({ pageNumber, pageFields, onHighlightClick }: PdfPagePro
     // Trigger size update after page loads
     if (containerRef.current) {
       const { clientWidth, clientHeight } = containerRef.current
-      console.log(`[PdfPage ${pageNumber}] Page loaded, size:`, { clientWidth, clientHeight })
+      // console.log(`[PdfPage ${pageNumber}] Page loaded, size:`, { clientWidth, clientHeight })
       setContainerSize({ width: clientWidth, height: clientHeight })
     }
   }
@@ -73,8 +73,8 @@ export const PdfPage = ({ pageNumber, pageFields, onHighlightClick }: PdfPagePro
           boxes={pageFields.map((f: ExtractedField) => f.provenance.bbox!).filter(Boolean)}
           overlayFields={pageFields}
           onClickBox={(field: ExtractedField, boxIndex: number) => {
-            console.log('Clicked field:', field);
-            console.log('Box index:', boxIndex);
+            // console.log('Clicked field:', field);
+            // console.log('Box index:', boxIndex);
             
             // Call original callback if provided
             if (onHighlightClick) {

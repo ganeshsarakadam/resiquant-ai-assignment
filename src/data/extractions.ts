@@ -1,8 +1,11 @@
+import { delay } from '@/lib/utils';
 import { ExtractionData } from '@/types';
+import { time } from 'console';
 
 // Load extraction data for a specific submission
 export async function loadExtractionData(submissionId: string): Promise<ExtractionData | null> {
   try {
+    await delay(500);
     const response = await fetch(`/data/extraction_${submissionId}.json`);
     if (!response.ok) {
       console.warn(`No extraction data found for submission ${submissionId}`);
