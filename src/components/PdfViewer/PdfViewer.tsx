@@ -31,6 +31,8 @@ export const PdfViewer = ({
   const [numPages, setNumPages] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState<number>(initialPage)
   const [reloadToken, setReloadToken] = useState(0)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   /**
    * Memoize fields by page
@@ -55,6 +57,8 @@ export const PdfViewer = ({
    * @description This is the handleDocSuccess function that handles the document load success
    */
   const handleDocSuccess = useCallback((pdf: PdfDocumentMinimal) => {
+    setIsLoading(false)
+    setLoadError(null)
     setNumPages(pdf.numPages)
     setCurrentPage(initialPage)
     onDocumentLoadSuccess?.(pdf)
@@ -66,6 +70,8 @@ export const PdfViewer = ({
    * @description This is the handleDocError function that handles the document load error
    */
   const handleDocError = useCallback((err: Error) => {
+    setIsLoading(false)
+    setLoadError(err.message || 'Failed to load PDF')
     onDocumentLoadError?.(err)
   }, [onDocumentLoadError])
 
@@ -92,24 +98,35 @@ export const PdfViewer = ({
        window.document.body.removeChild(a)
         }}
         onRetry={() => {
-          // bump token to force PdfDocument remount
-          setReloadToken(t => t + 1)
+          setIsLoading(true)
+          setLoadError(null)
+          setReloadToken(t => t + 1) // bump token to force PdfDocument remount
         }}
       />
 
       {/* Main viewer: scrollable content area */}
       <div className="flex-1 overflow-auto bg-gray-100">
-        <PdfDocument
-          key={reloadToken}
-          documentUrl={doc.url}
-          numPages={numPages}
-          fieldsByPage={fieldsByPage}
-          initialPage={initialPage}
-          onDocumentLoadSuccess={handleDocSuccess}
-          onDocumentLoadError={handleDocError}
-          onHighlightClick={onHighlightClick}
-          onPageChange={handlePageChange}
-        />
+        {loadError && !isLoading && (
+          <div className="w-full h-full flex items-center justify-center p-6 bg-white">
+            <div className="max-w-sm text-center">
+              <h3 className="text-sm font-semibold text-red-600 mb-2">Failed to load PDF</h3>
+              <p className="text-xs text-gray-600 whitespace-pre-wrap mb-4">{loadError}</p>
+            </div>
+          </div>
+        )}
+        {!loadError && (
+          <PdfDocument
+            key={reloadToken}
+            documentUrl={doc.url}
+            numPages={numPages}
+            fieldsByPage={fieldsByPage}
+            initialPage={initialPage}
+            onDocumentLoadSuccess={handleDocSuccess}
+            onDocumentLoadError={handleDocError}
+            onHighlightClick={onHighlightClick}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
     </div>
   )

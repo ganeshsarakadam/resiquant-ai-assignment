@@ -5,7 +5,6 @@ import { renderAsync } from 'docx-preview';
 import { Document as DocType, ExtractedField } from '@/types';
 import { useSelectionUrlState } from '@/hooks/useSelectionUrlState';
 import { DocxViewerHeader } from './Header';
-import { DocxViewerErrorState } from './ErrorState';
 import { PageCarousel } from './PageCarousel';
 import type { CarouselApi } from '@/components/ui/carousel';
 import '@/styles/docx-preview.css';
@@ -21,7 +20,7 @@ export interface DocxViewerProps {
 }
 
 export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, onReady, onError, onPageChange, onHighlightClick }: DocxViewerProps) => {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); // kept locally to suppress rendering pages until resolved
   const { state, setPageNumber } = useSelectionUrlState();
   const stagingRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<HTMLElement[]>([]);
@@ -70,8 +69,8 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
       } catch (err) {
         console.error('Error rendering DOCX:', err);
         const e = err instanceof Error ? err : new Error('Failed to render document');
-        if (isMounted) setError(e.message);
-        try { onError?.(e); } catch (cbErr) { console.warn('[DocxViewer] onError callback error', cbErr); }
+  if (isMounted) setError(e.message);
+  try { onError?.(e); } catch (cbErr) { console.warn('[DocxViewer] onError callback error', cbErr); }
       }
     }
     run();
@@ -126,6 +125,23 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
     document.body.removeChild(a);
   }, [doc.url, doc.name]);
 
+  // If parent handles error (DocumentViewer collects onError), we suppress internal visual error UI.
+  // We still expose retry & download in header (retry will trigger parent retry via remount logic if used there).
+  if (error) {
+    // Do not render the doc content; parent will show a unified error panel.
+    return (
+      <div className="h-full flex flex-col">
+        <DocxViewerHeader
+          currentPage={currentIndex + 1}
+          pageCount={pages.length}
+          hasPages={false}
+          onDownload={handleDownload}
+          onRetry={handleRetry}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <DocxViewerHeader
@@ -136,8 +152,7 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
         onRetry={handleRetry}
       />
       <div className="flex-1 overflow-auto bg-white">
-        {error && <DocxViewerErrorState message={error} onRetry={handleRetry} />}
-        {!error && pages.length > 0 && (
+        {pages.length > 0 && (
           <PageCarousel
             pages={pages}
             fieldsByPage={fieldsByPage}

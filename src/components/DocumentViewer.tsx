@@ -13,6 +13,7 @@ import { loadExtraction } from "@/lib/utils"
 import { PdfViewer } from "@/components/PdfViewer"
 import { DocxViewer } from "@/components/DocxViewer"
 import { SheetViewer } from "@/components/SheetViewer"
+import { DocumentViewerError } from "@/components/DocumentViewerError"
 
 interface DocumentViewerProps {
     onFieldHighlight?: (id: string) => void;
@@ -22,6 +23,8 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const { state, setPageNumber } = useSelectionUrlState();
     const headingRef = useRef<HTMLHeadingElement>(null);
     const highlightField = useHighlightSetter();
+    const [viewerError, setViewerError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
     const [numPages, setNumPages] = useState<number>(0);
     const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
     const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
@@ -55,6 +58,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      */
     const onDocumentLoadError = (error: Error) => {
         setIsDocumentLoadingInProgress(false);
+        setViewerError(error.message || 'Failed to load document');
     }
 
 
@@ -65,6 +69,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      */
     useEffect(() => {
         setNumPages(0);
+        setViewerError(null);
         if (!document) {
             setIsDocumentLoadingInProgress(false);
             return;
@@ -106,10 +111,22 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             );
         }
 
+        if (viewerError) {
+            return (
+                <DocumentViewerError
+                  message={viewerError}
+                  onRetry={() => { setViewerError(null); setReloadKey(k => k + 1); }}
+                  title="Failed to load document"
+                  hint="The file may be missing or corrupted."
+                />
+            );
+        }
+
         switch (document.type) {
             case 'pdf':
                 return (
                     <PdfViewer
+                        key={reloadKey}
                         extractedFields={extractedFields}
                         document={document}
                         initialPage={state.page || 1}
@@ -129,6 +146,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             case 'xlsx':
                 return (
                     <SheetViewer
+                        key={reloadKey}
                         document={document}
                         extractedFields={extractedFields}
                         onHighlightClick={(field) => {
@@ -137,12 +155,13 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
                             onFieldHighlight?.(field.id);
                         }}
                         onReady={() => { setIsDocumentLoadingInProgress(false); }}
-                        onError={() => { setIsDocumentLoadingInProgress(false); }}
+                        onError={(e) => { setIsDocumentLoadingInProgress(false); setViewerError(e.message); }}
                     />
                 );
             case 'docx':
                 return (
                     <DocxViewer
+                        key={reloadKey}
                         document={document}
                         onHighlightClick={(field) => {
                             if (!field) return;
@@ -153,7 +172,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
                         initialPage={state.page || 1}
                         onPageChange={(p:number) => { if (p !== state.page) setPageNumber(p); }}
                         onReady={() => { setIsDocumentLoadingInProgress(false); }}
-                        onError={() => { setIsDocumentLoadingInProgress(false); }}
+                        onError={(e) => { setIsDocumentLoadingInProgress(false); setViewerError(e.message); }}
                     />
                 );
             case 'eml':
