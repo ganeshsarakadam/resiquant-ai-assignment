@@ -56,13 +56,8 @@ The hook `useSelectionUrlState` persists: `submissionId`, `documentId`, and `pag
 Add a new document to existing submission:
 1. Drop file into `public/submissions/<submissionId>/`.
 2. Append a matching document object in the `documents` array for that submission in `submissions.manifest.ts`.
+3. Add a document map key object in `documents.manifest.ts`.
 3. (Optional) Add extraction entries referencing the new document in the JSON file.
-
-Create a new submission:
-1. Make folder: `public/submissions/sub_99/`
-2. Add files.
-3. Add a new submission object to `submissions.manifest.ts` with `submissionId: "sub_99"`.
-4. (Optional) Add `extraction_sub_99.json`.
 
 
 
@@ -79,3 +74,4 @@ Assignment / demo purposes only. No production warranty.
 
 ---
 See `DESIGN.md` for architecture, math, and trade-offs.
+
