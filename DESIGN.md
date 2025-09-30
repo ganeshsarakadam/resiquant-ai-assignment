@@ -9,17 +9,8 @@
 - Data: Static JSON manifests + extraction JSON per submission id, simulates backend API with artificial delay.
 
 ### 2. Component Diagram
-```
-SubmissionSelector ──┐
-SideMenu             │        +------------------+
-DocumentList ────────┼─> DocumentViewer --------> PdfViewer
-FieldList -----------┼─> (switch by type) -----> DocxViewer
-FieldCard* ----------┘                          SheetViewer
-														^
-HighlightContext (provider) --------------| (consumed by viewers & FieldCards)
-extractions.ts (loadExtractionData) -----> FieldList / FieldCards
-```
-`HighlightOverlay` sits inside each specific viewer, translating provenance coordinates to absolutely positioned boxes.
+![alt text](image.png)
+
 
 
 ### 3. Data Flow
