@@ -3,25 +3,17 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 
-interface SideMenuSkeletonProps {
-    collapsed: boolean;
-}
-
-export const SideMenuSkeleton = ({ collapsed }: SideMenuSkeletonProps) => {
+export const SideMenuSkeleton = () => {
     return (
         <aside
             className={[
-                "relative h-full border-r bg-white shrink-0",
-                "transition-[width] duration-200 ease-in-out",
-                collapsed ? "w-8" : "w-64", // match SideMenu width behavior
+                "relative h-full border-r bg-white shrink-0 w-64",
             ].join(" ")}
         >
-            {/* MAIN MENU CONTENT (hidden when collapsed) */}
-            <div className={collapsed ? "hidden" : "h-full flex flex-col"}>
+            <div className="h-full flex flex-col">
                 {/* Header skeleton */}
                 <div className="flex items-center justify-between px-3 py-2">
                     <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-6 w-12" />
                 </div>
                 <Separator />
                 

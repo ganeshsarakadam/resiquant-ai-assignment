@@ -21,7 +21,6 @@ import { useState, useEffect } from "react";
 import { loadExtraction } from "@/lib/utils";
 
 export default function Home() {
-  const [menuCollapsed, setMenuCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { setDocumentAndPage } = useSelectionUrlState();
 
@@ -47,11 +46,7 @@ export default function Home() {
                   <SheetTitle>Documents</SheetTitle>
                 </SheetHeader>
                 <div className="h-[calc(100vh-3.25rem)] overflow-y-auto">
-                    <SideMenu
-                    collapsed={false}
-                    setCollapsed={() => {}}
-                    // onSelect={() => setMobileMenuOpen(false)}
-                  />
+                  <SideMenu />
                 </div>
               </SheetContent>
             </Sheet>
@@ -76,7 +71,7 @@ export default function Home() {
       <div className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden" aria-label="Application workspace" role="region">
         {/* Desktop sidebar (xl and up) */}
         <div className="hidden xl:block flex-none" aria-label="Document navigation" role="navigation">
-          <SideMenu collapsed={menuCollapsed} setCollapsed={setMenuCollapsed} />
+          <SideMenu />
         </div>
 
         {/* Content area */}
@@ -88,7 +83,7 @@ export default function Home() {
           >
             <HighlightProvider onDocumentSelect={(field) => setDocumentAndPage(field.provenance?.docId || '', field.provenance?.page || 1)}>
               <ResizablePanel
-                defaultSize={menuCollapsed ? 70 : 60}
+                defaultSize={60}
                 minSize={30}
                 className="min-w-0"
               >

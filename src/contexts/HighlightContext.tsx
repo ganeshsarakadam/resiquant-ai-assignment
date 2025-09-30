@@ -40,7 +40,7 @@ export const HighlightProvider: React.FC<HighlightProviderProps> = ({ children, 
   const prevFieldRef = useRef<ExtractedField | null>(null);
 
   const clearTimerRef = useRef<number | null>(null);
-  const HIGHLIGHT_TTL = 3000; // milliseconds
+  const HIGHLIGHT_TTL = 2000; // milliseconds
 
   const highlightField = useCallback((field: ExtractedField) => {
     // Avoid redundant updates
