@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Check, X } from 'lucide-react';
@@ -52,13 +51,8 @@ export const FieldCardValue: React.FC<Props> = ({
         </div>
       )}
       {isEditing && (
-        <motion.div
-          className="flex items-center gap-2 w-full mt-1"
-          initial={{ opacity: 0, x: 6 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -6 }}
-          transition={{ duration: 0.18 }}
-          layout
+        <div
+          className="flex items-center gap-2 w-full mt-1 animate-none"
         >
           <Input
             ref={inputRef}
@@ -74,27 +68,25 @@ export const FieldCardValue: React.FC<Props> = ({
             autoComplete="off"
             spellCheck={false}
           />
-          <motion.button
+          <button
             type="button"
             onClick={confirmEdit}
-            whileTap={{ scale: 0.9 }}
-            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-green-500 text-white shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors"
+            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-green-500 text-white shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors active:scale-[0.97]"
             aria-label="Confirm edit"
             title="Confirm"
           >
             <Check className="h-4 w-4 cursor-pointer" />
-          </motion.button>
-          <motion.button
+          </button>
+          <button
             type="button"
             onClick={cancelEdit}
-            whileTap={{ scale: 0.9 }}
-            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-muted/40 bg-gray-200 text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition-colors"
+            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-muted/40 bg-gray-200 text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition-colors active:scale-[0.97]"
             aria-label="Cancel edit"
             title="Cancel"
           >
             <X className="h-4 w-4 cursor-pointer" />
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       )}
     </div>
   );

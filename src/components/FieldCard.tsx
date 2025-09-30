@@ -2,29 +2,23 @@
 
 import { cn } from "@/lib/utils";
 import React, { useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
-import { motion } from "framer-motion";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useFieldCardEditing } from "@/hooks/useFieldCardEditing";
 import { FieldCardHeader } from "@/components/FieldCardHeader";
 import { FieldCardValue } from "@/components/FieldCardValue";
 
 
-type MotionDivProps = React.ComponentProps<typeof motion.div>;
-// BaseCard now allows callers to override the animate prop so focus/highlight animation works via parent
-const BaseCard: React.FC<MotionDivProps> = ({ className, animate, whileHover, transition, ...rest }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.97, y: 4 }}
-      animate={animate || { opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, y: 4 }}
-      transition={transition || { duration: 0.18, ease: [0.22, 0.98, 0.52, 0.99] }}
-      whileHover={whileHover || { y: -2, boxShadow: "0 4px 10px -2px rgba(0,0,0,0.08)" }}
-      whileTap={{ scale: 0.985 }}
-      className={cn("bg-white border rounded-md shadow-sm will-change-transform", className)}
-      {...rest}
-    />
-  );
-};
+// Static BaseCard (no motion)
+type BaseCardDivProps = React.HTMLAttributes<HTMLDivElement>;
+const BaseCard: React.FC<BaseCardDivProps> = ({ className, ...rest }) => (
+  <div
+    className={cn(
+      "bg-white border rounded-md shadow-sm",
+      className
+    )}
+    {...rest}
+  />
+);
 
 const fieldCardVariants = cva(
     "relative border shadow-sm transition-colors rounded-md group focus-within:border-blue-500 hover:border-gray-300 bg-white",
@@ -156,6 +150,7 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
       className={cn(
         fieldCardVariants({ size, state: visualState as any }),
         editingApi.isEditing && 'ring-2 ring-blue-500/40',
+        isActive && 'outline outline-2 outline-blue-400',
         className,
         'relative'
       )}
@@ -165,9 +160,6 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
       data-label={label}
       data-editing={editingApi.isEditing || undefined}
       data-active={isActive || undefined}
-      animate={isActive ? { opacity: 1, scale: 1.015, y: -3 } : { opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-      layout="position"
       {...Object.fromEntries(Object.entries(rest).filter(([k]) => !['onCopy','onDelete'].includes(k)))}
     >
       <div className="flex flex-col gap-1 pr-8" aria-live="polite">
@@ -188,17 +180,31 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
           sizeClasses={{ value: sz.value }}
         />
         {truncatedSnippet && !editingApi.isEditing && (
-          <motion.button
+          <button
             type="button"
-            onClick={() => onSnippetClick?.(provenanceSnippet!)}
-            whileTap={{ scale: 0.97 }}
-            className="mt-1 w-fit text-[10px] rounded cursor-pointer px-1.5 py-0.5 bg-gray-100 hover:bg-blue-200 text-gray-600 hover:text-gray-800 transition-colors border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={(e) => {
+              onSnippetClick?.(provenanceSnippet!);
+              // Prevent focus from staying on this button
+              e.currentTarget.blur();
+              // Move focus back to container
+              const container = document.querySelector('[data-field-list-container]');
+              if (container) {
+                (container as HTMLElement).focus();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Tab') {
+                // When tabbing from snippet, ensure focus moves properly to next element
+                e.currentTarget.blur();
+              }
+            }}
+            className="mt-1 w-fit text-[10px] rounded cursor-pointer px-1.5 py-0.5 bg-gray-100 hover:bg-blue-200 text-gray-600 hover:text-gray-800 transition-colors "
             aria-label={`View provenance snippet for ${label}`}
             title={provenanceSnippet}
             data-full-snippet={provenanceSnippet}
           >
             <span className="font-semibold text-gray-500">{label}:</span> {truncatedSnippet}
-          </motion.button>
+          </button>
         )}
       </div>
     </BaseCard>

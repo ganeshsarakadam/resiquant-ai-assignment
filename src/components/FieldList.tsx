@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { motion, useReducedMotion } from 'framer-motion';
 import { FileWarning, RefreshCw } from "lucide-react";
 import { FieldListViewerSkeleton } from "@/components/Skeletons/FieldListViewerSkeleton";
 import { FieldCard } from "./FieldCard";
@@ -27,6 +28,8 @@ const FieldList = () => {
     const { state } = useSelectionUrlState();
     const highlightedField = useHighlightedField();
     const highlightField = useHighlightSetter();
+
+    const prefersReducedMotion = useReducedMotion();
 
     const mergedFields = useMemo(() => (
         baseFields.map(f => (
@@ -274,29 +277,49 @@ const FieldList = () => {
                     const isHighlighted = highlightedField?.id === field.id; // document highlight state
                     const isActive = activeIndex === index || isHighlighted; // active selection OR highlighted
                     return (
-                        <FieldCard
+                        <motion.div
                             key={field.id}
-                            id={`field-${field.id}`}
-                            data-field-value={field.id}
-                            data-field-index={index}
-                            data-active={isActive || undefined}
-                            label={field.name}
-                            value={effectiveValue}
-                            placeholder={field.originalValue}
-                            onEdit={(v) => handleEdit(field.id, v)}
-                            onCancel={() => handleCancelEdit(field.id)}
-                            onDelete={() => { }}
-                            onClick={() => setActiveIndex(index)}
-                            editable
-                            disabled={false}
-                            status={isModified ? 'modified' : 'original'}
-                            onCopy={() => { }}
-                            confidence={field.confidence}
-                            provenanceSnippet={field.provenance?.snippet}
-                            onSnippetClick={() => highlightField(field)}
-                            isActive={isActive}
-                            className={`transition-colors ${isActive ? "ring-2 ring-blue-500/70 outline outline-2 outline-blue-400 bg-blue-50/60 shadow-sm" : ""}`}
-                        />
+                            layout
+                            initial={false}
+                            animate={isActive ? 'active' : 'inactive'}
+                            variants={prefersReducedMotion ? undefined : {
+                                inactive: { scale: 1, y: 0 },
+                                active: {
+                                    scale: 1.015,
+                                    y: -2,
+                                    transition: {
+                                        type: 'spring',
+                                        stiffness: 420,
+                                        damping: 28,
+                                        mass: 0.65
+                                    }
+                                }
+                            }}
+                            style={{ willChange: 'transform' }}
+                        >
+                            <FieldCard
+                                id={`field-${field.id}`}
+                                data-field-value={field.id}
+                                data-field-index={index}
+                                data-active={isActive || undefined}
+                                label={field.name}
+                                value={effectiveValue}
+                                placeholder={field.originalValue}
+                                onEdit={(v) => handleEdit(field.id, v)}
+                                onCancel={() => handleCancelEdit(field.id)}
+                                onDelete={() => { }}
+                                onClick={() => setActiveIndex(index)}
+                                editable
+                                disabled={false}
+                                status={isModified ? 'modified' : 'original'}
+                                onCopy={() => { }}
+                                confidence={field.confidence}
+                                provenanceSnippet={field.provenance?.snippet}
+                                onSnippetClick={() => highlightField(field)}
+                                isActive={isActive}
+                                className={`transition-colors ${isActive ? "ring-2 ring-blue-500/70 outline-2 bg-blue-50/60 shadow-sm" : ""}`}
+                            />
+                        </motion.div>
                     );
                 })}
             </div>
