@@ -28,13 +28,68 @@
 
 
 
-### 4. Provenance Overlay
+### 4. UI Architecture
+
+Purpose for each UI component:
+
+Core Orchestration
+- `DocumentViewer` – Central hub that selects and mounts the correct viewer (PDF, DOCX, XLSX, Image( not implemented), Email ( not implemented)) and surfaces unified loading/error states & highlight routing.
+- `SideMenu` – Left panel shell that holds document navigation controls.
+- `SubmissionSelector` – Dropdown/selector to choose the active submission context (drives document and extraction data).
+- `DocumentList` – Lists all documents for the currently selected submission.
+- `FieldList` – Renders extracted fields with inline editing, provenance linkage, and modified state indicators.
+
+Field Editing & Highlighting
+- `FieldCard` – Container for a single field row managing editing & highlight triggers.
+- `FieldCardHeader` – Displays the field label / name and status adornments.
+- `FieldCardValue` – Inline editable value cell with debounce + cancel/confirm behaviors.
+- `HighlightOverlay` – Absolutely positioned layer on the document rendered container with highlights.
+
+PDF Viewer Suite (`/PdfViewer`)
+- `PdfViewer` – Coordinates PDF loading, page navigation, and extracted field highlight projection (Using  `HighlightOverlay`).
+- `PdfDocument` – Loads the PDF and reports page count (thin abstraction over react‑pdf document load).
+- `PdfCarousel` – Manages horizontal/scrollable page viewport & pagination state sync.
+- `PdfPage` – Renders an individual PDF page canvas.
+- `PdfHeader` – Toolbar for PDF (page indicators, navigation, download, retry logic ).
+
+DOCX Viewer Suite (`/DocxViewer`)
+- `DocxViewer` – Fetches, renders, and paginates a DOCX file into pages.
+- `Header` (`DocxViewerHeader`) – Toolbar with page info, retry, and download actions.
+- `PageCarousel` – Carousel wrapper enabling horizontal page navigation.
+- `PageMount` – Mount point wrapper responsible for correct sizing/containment of a rendered page.
+- `PageSlide` – Renders `PageMount` with highlight overlay  (Using  `HighlightOverlay`).
+
+Sheet Viewer Suite (`/SheetViewer`)
+- `SheetViewer` – Loads workbook, manages sheet pagination, and field mapping to cell ranges.
+- `SheetToolbar` – Sheet-level actions: navigation, retry, download metadata display.
+- `SheetTable` – Renders a single sheet (cells grid) with highlight interactions.
+
+Other Viewers
+- `ImageViewer` – Just a placeholder (not implemented).
+- `EmailViewer` – Just a placeholder (not implemented).
+
+Error & Skeleton States
+- `DocumentViewerError` – Unified retry-capable error panel for any viewer load failure.
+- `DocumentViewerSkeleton` – Loading skeleton while resolving document loading state.
+- `SideMenuSkeleton` – Loading skeleton for side navigation (submission & document lists).
+- `FieldListViewerSkeleton` - Loading skeleton for field list pane.
+
+Shared UI Primitives (`/components/ui`) – exported from and wrapped Radix / shadcn primitives.
+- `button`, `badge`, `card`, `select`, `separator`, `skeleton`, `sheet`, `tooltip`, `carousel`, `scroll-area`, `resizable`, `input` – Consistent, accessible building blocks with Tailwind theming.
+
+Supporting Utilities (Context / Hooks – referenced by components)
+- `HighlightContext`  – Provides highlight set function & current highlight state to document viewers and field list.
+- `useSelectionUrlState` – Syncs submission, document, and page parameters with the URL for deep links and navigation cohesion.
+
+
+
+### 5. Provenance Overlay
 - Each `ExtractedField` includes: `docId`, `documentType`, `page`, `bbox?` OR `cellRange?` and optional text `snippet`.
 - For sheets: `ExcelCellRange = [row, col, rowSpan, colSpan]`, widths/heights arrays accumulate to compute absolute pixel rectangles, then normalized.
 - Scroll Sync: overlay container listens to scroll and applies inverse translate to keep highlight alignment.
 - Accessibility: Each box is focusable (`role=button`, keyboard Enter/Space triggers highlight) and adds ARIA labels.
 
-### 5. Math behind the provenance overlay
+### 6. Math behind the provenance overlay
 PDF / DOCX:
 - Each highlight gives a normalized box `[x, y, w, h]` where values are fractions of the page size (0 → left/top edge, 1 → right/bottom edge).
 - To set it on the overlay it is just to multiply by 100 and set CSS: `left = x*100%`, `width = w*100%`.
@@ -49,7 +104,7 @@ XLSX Sheets:
 
 
 
-### 6. AI: Help, Hurt, Validation
+### 7. AI: Help, Hurt, Validation
 #### AI Help
 - Assisted with **auto-completion** when creating components and deriving logic.  
 - Helped in implementing the **Docx preview**, especially when documentation was limited—prompting AI guided me toward a working solution.  
@@ -66,13 +121,13 @@ XLSX Sheets:
 - Cross-checked the **bounding box overlay calculations** across different document types to ensure consistency.  
  
 
-### 7. Trade-offs 
+### 8. Trade-offs 
 - **Client-side rendering**: Rendering documents directly in the browser is a heavy lift and can negatively impact performance when dealing with hundreds of attachments.  
 - **Resource limitations**: Browser workers are not as powerful as backend servers, so offloading heavy processing to the backend can improve performance.  
 - **Large packages**: Libraries for rendering formats like XLSX and DOCX are memory-intensive, which increases load time and processing cost on the client side.  
 
 
-### 8. Next Steps / Enhancements
+### 9. Next Steps / Enhancements
 - **Excel formatting**: While various techniques can improve formatting, the ideal solution is serving the file through a URL and loading it inside an iframe. This approach offloads heavy processing from the UI.  
 - **Extended field list**:  
   - Add a **delete field** option.  
@@ -81,13 +136,16 @@ XLSX Sheets:
   - Grouping **fields** by Page.
 - Adding additional appearance themes to the application.
 - **Zoom and panning**: Enable zooming and panning in the document viewer to allow users to validate fields more clearly by inspecting finer details.  
-- **Backend extraction service**: Integrate a real extraction service (OCR and ML algorithms) on the backend to detect fields with more accurate bounding box dimensions.  
-
 
 ### References
 - URL state  - https://medium.com/@roman_j/mastering-state-in-next-js-app-router-with-url-query-parameters-a-practical-guide-03939921d09c
 - Shadcn UI  - https://ui.shadcn.com/docs/components
 - Usage of react-pdf examples - https://codesandbox.io/examples/package/react-pdf
 - Understanding bbox usage in react - https://github.com/alx/react-bounding-box
+
+
+
+
+
 
 
