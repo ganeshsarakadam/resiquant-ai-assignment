@@ -2,7 +2,8 @@
 
 Submission Document Explorer for multi‑document insurance submissions (PDF, DOCX, XLS/XLSX) with provenance overlays and making corrections on the fields based on the document preview.
 
-Note: Add the submission folders (sub_2, sub_5, sub_7, sub_19, sub_56) under public/submissions/
+Note: Place the submission folders (sub_2, sub_5, sub_7, sub_19, sub_56) under `public/submissions/`.
+Extraction JSON files currently exist only for submissions 5, 7, and 19 (see `public/data/extraction_sub_<id>.json`).
 
 ---
 ## 1. Prerequisites
@@ -19,7 +20,6 @@ npm install
 ```
 public/
 	submissions/               # Raw submission files (PDFDOCX/XLS/XLSX)
-	data/
 		extraction_sub_<id>.json  # Extraction output per submission (optional)
 src/
 	data/                       # Manifests linking submissions & documents
