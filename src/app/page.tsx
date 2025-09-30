@@ -17,10 +17,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { PanelLeftOpen } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { loadExtraction } from "@/lib/utils";
 
-export default function Home() {
+function HomeInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { setDocumentAndPage } = useSelectionUrlState();
 
@@ -129,5 +129,13 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-4 text-sm text-gray-600">Loading…</div>}>
+      <HomeInner />
+    </Suspense>
   );
 }

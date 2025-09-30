@@ -22,6 +22,7 @@ const FieldList = () => {
     const [baseFields, setBaseFields] = useState<VersionedField[]>([]);
     const [modMap, setModMap] = useState<Record<string, string>>({}); // id -> modifiedValue
     const [isLoading, setIsLoading] = useState(true);
+    const [attemptedLoad, setAttemptedLoad] = useState(false); // tracks if we actually tried to load for a submission
     const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
     const [activeIndex, setActiveIndex] = useState<number>(-1); // keyboard/mouse selection (not yet highlighted)
     const { state } = useSelectionUrlState();
@@ -149,9 +150,17 @@ const FieldList = () => {
 
     useEffect(() => {
         const loadFields = async () => {
-            if (!state.submissionId) return;
+            if (!state.submissionId) {
+                // Reset to pristine if submission cleared
+                setIsLoading(false);
+                setAttemptedLoad(false);
+                setBaseFields([]);
+                setModMap({});
+                return;
+            }
             try {
                 setIsLoading(true);
+                setAttemptedLoad(true);
                 await getExtractedFields();
             } catch (error) {
                 console.error('Failed to load extraction data:', error);
@@ -255,7 +264,20 @@ const FieldList = () => {
                         <FieldListViewerSkeleton />
                     </div>
                 )}
-                {!isLoading && mergedFields.length === 0 && (
+                {/* No submission selected */}
+                {!isLoading && !state.submissionId && (
+                    <div className="flex items-center justify-center py-10 select-none">
+                        <div className="border rounded-md bg-white shadow-sm p-6 w-full max-w-sm text-center space-y-3">
+                            <div className="mx-auto h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center">
+                                <FileWarning className="h-6 w-6 text-blue-500" />
+                            </div>
+                            <h3 className="text-sm font-medium text-gray-900">No Submission Selected</h3>
+                            <p className="text-xs text-gray-500">Choose a submission above to load its extracted fields.</p>
+                        </div>
+                    </div>
+                )}
+                {/* Submission selected, attempted load, but no fields */}
+                {!isLoading && state.submissionId && attemptedLoad && mergedFields.length === 0 && (
                     <div className="flex items-center justify-center py-10 select-none">
                         <div className="border rounded-md bg-white shadow-sm p-6 w-full max-w-sm text-center space-y-3">
                             <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center">
@@ -263,7 +285,7 @@ const FieldList = () => {
                             </div>
                             <h3 className="text-sm font-medium text-gray-900">No Extracted Fields</h3>
                             <p className="text-xs text-gray-500">
-                                We couldn't find any extracted fields for this submission.
+                                We couldn&apos;t find any extracted fields for this submission.
                             </p>
                             <div className="pt-1 flex justify-center">
                                 <button

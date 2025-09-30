@@ -14,7 +14,7 @@ export function useWorkbookLoader({ document, onReady, onError }: UseWorkbookLoa
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
-  const xlsxRef = useRef<any>(null);
+  const xlsxRef = useRef<typeof import('xlsx-js-style') | null>(null);
 
   const retry = useCallback(() => {
     setError(null);
@@ -48,7 +48,7 @@ export function useWorkbookLoader({ document, onReady, onError }: UseWorkbookLoa
         for (let i = 0; i < workbook.SheetNames.length; i++) {
           const sheetName = workbook.SheetNames[i];
           const worksheet = workbook.Sheets[sheetName];
-          const data = XLSXMod.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false }) as any[][];
+          const data = XLSXMod.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false }) as (string | number | boolean | null)[][];
           const colWidths = worksheet['!cols']?.map(col => col.wch || 8);
           const rowHeights = worksheet['!rows']?.map(row => row.hpt || 20);
           const merges = worksheet['!merges'];
@@ -59,14 +59,15 @@ export function useWorkbookLoader({ document, onReady, onError }: UseWorkbookLoa
         setSheets(sheetData);
         setIsLoading(false);
         try { onReady?.({ pageCount: sheetData.length }); } catch (cbErr) { console.warn('[useWorkbookLoader] onReady error', cbErr); }
-      } catch (err: any) {
-        if (err?.name === 'AbortError') return;
-        console.error('[useWorkbookLoader] load error', err);
+      } catch (err) {
+        const e = err as unknown;
+        if ((e as { name?: string })?.name === 'AbortError') return;
+        console.error('[useWorkbookLoader] load error', e);
         if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load spreadsheet');
+          setError(e instanceof Error ? e.message : 'Failed to load spreadsheet');
           setIsLoading(false);
         }
-        try { onError?.(err instanceof Error ? err : new Error('Failed to load spreadsheet')); } catch (cbErr) { console.warn('[useWorkbookLoader] onError error', cbErr); }
+        try { onError?.(e instanceof Error ? e : new Error('Failed to load spreadsheet')); } catch (cbErr) { console.warn('[useWorkbookLoader] onError error', cbErr); }
       }
     }
 

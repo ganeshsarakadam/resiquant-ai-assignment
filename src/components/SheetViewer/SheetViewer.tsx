@@ -7,7 +7,7 @@ import { SheetToolbar } from './SheetToolbar';
 import { SheetViewerProps } from './types';
 import { useWorkbookLoader } from './useWorkbookLoader';
 
-export const SheetViewer: React.FC<SheetViewerProps> = React.memo(({ document: doc, extractedFields = [], onReady, onError, onHighlightClick }) => {
+export const SheetViewer: React.FC<SheetViewerProps> = React.memo(function SheetViewer({ document: doc, extractedFields = [], onReady, onError, onHighlightClick }) {
   const { sheets, isLoading, error, retry, xlsxRef } = useWorkbookLoader({ document: doc, onReady, onError });
   const { state, setPageNumber } = useSelectionUrlState();
   const [api, setApi] = useState<CarouselApi>();
@@ -138,4 +138,5 @@ export const SheetViewer: React.FC<SheetViewerProps> = React.memo(({ document: d
   prev.onHighlightClick === next.onHighlightClick
 ));
 
-export default SheetViewer;
+(SheetViewer as React.MemoExoticComponent<React.FC<SheetViewerProps>>).displayName = 'SheetViewer';
+// Named export only; no default export to ensure consistent import style

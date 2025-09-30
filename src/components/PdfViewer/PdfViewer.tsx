@@ -5,11 +5,12 @@ import { Document as DocType } from '@/types'
 import { PdfHeader } from './PdfHeader'
 import { PdfDocument } from './PdfDocument'
 import type { ExtractedField } from '@/types'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 
 export interface PdfViewerProps {
   document: DocType;
   initialPage?: number;
-  onDocumentLoadSuccess?: (pdf: any) => void;
+  onDocumentLoadSuccess?: (pdf: PDFDocumentProxy) => void;
   onDocumentLoadError?: (error: Error) => void;
   onDocumentLoadProgress?: (ratio: number) => void;
   submissionId?: string;
@@ -19,7 +20,7 @@ export interface PdfViewerProps {
 }
 
 export const PdfViewer = ({
-  document,
+  document: doc,
   extractedFields,
   initialPage = 1,
   onDocumentLoadSuccess,
@@ -29,6 +30,7 @@ export const PdfViewer = ({
 }: PdfViewerProps) => { 
   const [numPages, setNumPages] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState<number>(initialPage)
+  const [reloadToken, setReloadToken] = useState(0)
 
   /**
    * Memoize fields by page
@@ -36,24 +38,23 @@ export const PdfViewer = ({
    * @description This is the fieldsByPage function that memoizes the fields by page
    */
   const fieldsByPage = useMemo(() => {
-    if (!extractedFields) return new Map<number, ExtractedField[]>()
     const map = new Map<number, ExtractedField[]>()
-    for (const field of extractedFields) {
-      if (field.provenance.docName === document.name && field.provenance.bbox && field.provenance.page) {
+    for (const field of extractedFields || []) {
+      if (field.provenance.docName === doc.name && field.provenance.bbox && field.provenance.page) {
         const arr = map.get(field.provenance.page) || []
         arr.push(field)
         map.set(field.provenance.page, arr)
       }
     }
     return map
-  }, [extractedFields, document.name])
+  }, [extractedFields, doc.name])
 
   /**
    * On document load success, we set the number of pages and the current page
    * @param pdf 
    * @description This is the handleDocSuccess function that handles the document load success
    */
-  const handleDocSuccess = useCallback((pdf: any) => {
+  const handleDocSuccess = useCallback((pdf: PDFDocumentProxy) => {
     setNumPages(pdf.numPages)
     setCurrentPage(initialPage)
     onDocumentLoadSuccess?.(pdf)
@@ -83,17 +84,24 @@ export const PdfViewer = ({
         numPages={numPages}
         currentPage={currentPage}
         onDownload={() => {
-          // TODO: Implement download functionality
+       const a = window.document.createElement('a')
+       a.href = doc.url as string
+       a.download = doc.name
+       window.document.body.appendChild(a)
+       a.click()
+       window.document.body.removeChild(a)
         }}
         onRetry={() => {
-          // TODO: Implement retry functionality
+          // bump token to force PdfDocument remount
+          setReloadToken(t => t + 1)
         }}
       />
 
       {/* Main viewer: scrollable content area */}
       <div className="flex-1 overflow-auto bg-gray-100">
         <PdfDocument
-          documentUrl={document.url}
+          key={reloadToken}
+          documentUrl={doc.url}
           numPages={numPages}
           fieldsByPage={fieldsByPage}
           initialPage={initialPage}

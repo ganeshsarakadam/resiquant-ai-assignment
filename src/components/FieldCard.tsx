@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
+import React, { useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useFieldCardEditing } from "@/hooks/useFieldCardEditing";
 import { FieldCardHeader } from "@/components/FieldCardHeader";
@@ -44,11 +44,10 @@ const fieldCardVariants = cva(
     }
 );
 
-type ExtraDivProps = {
-  // Allow passing arbitrary data-* attributes and id for scrolling/highlight
-  id?: string;
-  [dataAttr: `data-${string}`]: any; // index signature for data-* only
-};
+// Allow passing arbitrary data-* attributes (restricted to primitive serializable values) and id for scrolling/highlight
+type DataAttrPrimitive = string | number | boolean | undefined;
+type DataAttributes = { [K in `data-${string}`]?: DataAttrPrimitive };
+type ExtraDivProps = DataAttributes & { id?: string };
 
 export interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, ExtraDivProps {
     label: string;
@@ -148,7 +147,7 @@ export const FieldCard = React.memo(forwardRef<FieldCardHandle, FieldCardProps>(
   return (
     <BaseCard
       className={cn(
-        fieldCardVariants({ size, state: visualState as any }),
+  fieldCardVariants({ size, state: visualState as 'normal' | 'modified' | 'disabled' }),
         // Suppress any ring/outline when editing (double-click) to avoid blue ring
         editingApi.isEditing && 'ring-0 outline-none ring-transparent',
         !editingApi.isEditing && isActive && 'outline outline-2 outline-blue-400',

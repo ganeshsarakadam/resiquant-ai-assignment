@@ -1,11 +1,12 @@
 'use client';
 
-import { 
-  FileText, 
-  FileImage, 
-  FileSpreadsheet, 
-  Mail, 
-  File 
+import {
+    FileText,
+    FileImage,
+    FileSpreadsheet,
+    Mail,
+    File,
+    FileWarning
 } from "lucide-react";
 import { Document, DocumentType } from "@/types";
 import {
@@ -37,22 +38,44 @@ const getDocumentIcon = (type: DocumentType) => {
     }
 };
 
-export const DocumentList = ({ documents}: DocumentListProps) => {
+export const DocumentList = ({ documents }: DocumentListProps) => {
     const { state, setDocumentId } = useSelectionUrlState();
-        return (
-            <div className="p-4">
+    const hasSubmission = !!state.submissionId;
+    const hasDocs = documents.length > 0;
+
+    return (
+        <div className="p-4 min-h-[160px]">
+            {!hasSubmission && (
+                <div className="border rounded-md bg-white shadow-sm p-5 text-center text-xs text-gray-600 flex flex-col items-center gap-3" role="status" aria-live="polite">
+                    <div className="mx-auto h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
+                        <FileWarning className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                        <p className="font-medium text-gray-800 mb-0.5">No Submission Selected</p>
+                        <p>Select a submission to view its documents.</p>
+                    </div>
+                </div>
+            )}
+            {hasSubmission && !hasDocs && (
+                <div className="border rounded-md bg-white shadow-sm p-5 text-center text-xs text-gray-600 flex flex-col items-center gap-3" role="status" aria-live="polite">
+                    <div className="mx-auto h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center">
+                        <FileWarning className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                        <p className="font-medium text-gray-800 mb-0.5">No Documents Found</p>
+                        <p>This submission does not list any documents.</p>
+                    </div>
+                </div>
+            )}
+            {hasSubmission && hasDocs && (
                 <ul className="space-y-1" role="listbox" aria-label="Documents">
-                    {documents.map((doc) => {
+                    {documents.map(doc => {
                         const isActive = state.documentId === doc.id;
                         return (
                             <li key={doc.id} role="option" aria-selected={isActive}>
                                 <button
                                     type="button"
-                                    className={`w-full cursor-pointer text-left flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
-                                        isActive
-                                            ? 'bg-blue-50 border border-blue-200 text-blue-900'
-                                            : 'hover:bg-gray-100 text-gray-900'
-                                    }`}
+                                    className={`w-full cursor-pointer text-left flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${isActive ? 'bg-blue-50 border border-blue-200 text-blue-900' : 'hover:bg-gray-100 text-gray-900'}`}
                                     onClick={() => setDocumentId(doc.id)}
                                     aria-current={isActive || undefined}
                                 >
@@ -72,6 +95,7 @@ export const DocumentList = ({ documents}: DocumentListProps) => {
                         );
                     })}
                 </ul>
-            </div>
-        );
+            )}
+        </div>
+    );
 };

@@ -25,6 +25,7 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
   const { state, setPageNumber } = useSelectionUrlState();
   const stagingRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<HTMLElement[]>([]);
+  const [reloadToken, setReloadToken] = useState(0);
   const [api, setApi] = useState<CarouselApi | undefined>();
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -75,7 +76,7 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
     }
     run();
     return () => { isMounted = false; };
-  }, [doc.url]);
+  }, [doc.url, reloadToken]);
 
   const fieldsByPage = useMemo(() => {
     if (!extractedFields) return new Map<number, ExtractedField[]>();
@@ -115,7 +116,7 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
     }
   }, [api, state.page, pages.length, initialPage]);
 
-  const handleRetry = useCallback(() => { setError(null); }, []);
+  const handleRetry = useCallback(() => { setError(null); setReloadToken(t => t + 1); }, []);
   const handleDownload = useCallback(() => {
     const a = document.createElement('a');
     a.href = doc.url as string;

@@ -10,6 +10,7 @@ import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
 import { useHighlightSetter } from "@/contexts/HighlightContext"
 import { ExtractedField } from "@/types"
 import { loadExtraction } from "@/lib/utils"
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { PdfViewer } from "@/components/PdfViewer"
 import { DocxViewer } from "@/components/DocxViewer"
 import { SheetViewer } from "@/components/SheetViewer"
@@ -45,7 +46,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      * On document load success, we set the number of pages and the loading state to false
      * @param pdf 
      */
-    const onDocumentLoadSuccess = (pdf: any) => {
+    const onDocumentLoadSuccess = (pdf: PDFDocumentProxy) => {
         setNumPages(pdf.numPages);
         setIsDocumentLoadingInProgress(false);
     }
@@ -71,12 +72,12 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
             return;
         }
         setIsDocumentLoadingInProgress(true);
-        // Only move focus if user is not actively interacting with Field List or another focusable region.
-    const domActive = (typeof window !== 'undefined') ? (window.document.activeElement as HTMLElement | null) : null;
-    const withinFieldList = !!domActive?.closest('[data-field-list-container]');
-        if (!withinFieldList) {
-            headingRef.current?.focus();
-        }
+    //     // Only move focus if user is not actively interacting with Field List or another focusable region.
+    // const domActive = (typeof window !== 'undefined') ? (window.document.activeElement as HTMLElement | null) : null;
+    // const withinFieldList = !!domActive?.closest('[data-field-list-container]');
+    //     if (!withinFieldList) {
+    //         headingRef.current?.focus();
+    //     }
     }, [document]);
 
 

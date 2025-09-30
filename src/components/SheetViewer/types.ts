@@ -11,16 +11,17 @@ export interface SheetViewerProps {
 
 export interface SheetData {
   name: string;
-  data: any[][];
-  colWidths?: number[];
-  rowHeights?: number[];
-  merges?: XLSX.Range[];
+  data: (string | number | boolean | null)[][]; // 2D cell array
+  colWidths?: number[]; // width in characters (wch) from sheet metadata
+  rowHeights?: number[]; // height in points from sheet metadata
+  merges?: XLSX.Range[]; // merged cell ranges
 }
 
 export const yieldToBrowser = async () => {
-  if (typeof (window as any).requestIdleCallback === 'function') {
-    await new Promise(res => (window as any).requestIdleCallback(res, { timeout: 60 }));
-  } else {
-    await new Promise(res => setTimeout(res, 0));
+  const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void };
+  if (typeof w.requestIdleCallback === 'function') {
+    await new Promise<void>(resolve => w.requestIdleCallback!(() => resolve(), { timeout: 60 }));
+    return;
   }
+  await new Promise(res => setTimeout(res, 0));
 };

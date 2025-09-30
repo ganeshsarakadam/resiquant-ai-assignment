@@ -68,7 +68,10 @@ export const PdfPage = ({ pageNumber, totalPages, pageFields, onHighlightClick }
         renderAnnotationLayer={false}
         renderMode="canvas"
         onLoadSuccess={handlePageLoadSuccess}
-        onLoadError={(e: any) => console.error('Page load error', pageNumber, e)}
+        onLoadError={(e: unknown) => {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error('Page load error', pageNumber, msg);
+        }}
       />
       {pageFields.length > 0 && containerSize.width > 0 && containerSize.height > 0 && (
         <HighlightOverlay

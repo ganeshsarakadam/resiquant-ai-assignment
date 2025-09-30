@@ -10,7 +10,7 @@ export interface SheetTableProps {
   decodeCell?: (addr: string) => { r: number; c: number };
 }
 
-export const SheetTable = React.memo(({ sheet, extractedFields = [], onHighlightClick, decodeCell }: SheetTableProps) => {
+export const SheetTable = React.memo(function SheetTable({ sheet, extractedFields = [], onHighlightClick, decodeCell }: SheetTableProps) {
   const [visibleRows, setVisibleRows] = useState(100);
   const containerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -60,20 +60,20 @@ export const SheetTable = React.memo(({ sheet, extractedFields = [], onHighlight
 
   const excelBoxes: [number, number, number, number][] = extractedFields
     .map(f => {
-      const cellRange = f.provenance.cellRange as any;
-      if (!cellRange || !Array.isArray(cellRange) || cellRange.length !== 2) return null;
+      const cellRange = f.provenance.cellRange as [string, string] | undefined;
+      if (!cellRange || cellRange.length !== 2 || !decodeCell) return null;
       try {
-        const [, end] = cellRange as [string, string];
-        if (!decodeCell) return null;
+        const [, end] = cellRange;
         const { r, c } = decodeCell(end);
         const box: [number, number, number, number] = [r, c, 1, 1];
         if (box[0] >= displayData.length || box[1] >= maxColumns) return null;
         return box;
-      } catch {
+      } catch (err) {
+        console.warn('[SheetTable] Failed to decode cell range', err);
         return null;
       }
     })
-    .filter((b): b is [number, number, number, number] => !!b);
+    .filter((b): b is [number, number, number, number] => b !== null);
 
   const canLoadMore = visibleRows < sheet.data.length;
 
@@ -158,3 +158,5 @@ export const SheetTable = React.memo(({ sheet, extractedFields = [], onHighlight
   prev.extractedFields === next.extractedFields &&
   prev.onHighlightClick === next.onHighlightClick
 ));
+
+(SheetTable as React.MemoExoticComponent<React.FC<SheetTableProps>>).displayName = 'SheetTable';

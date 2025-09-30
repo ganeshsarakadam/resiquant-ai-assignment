@@ -27,16 +27,16 @@ export const DocxViewerHeader: React.FC<HeaderProps> = ({ currentPage, pageCount
         <button
           onClick={onDownload}
           title="Download document"
-          className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
+          className="flex items-center cursor-pointer gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
         >
-          <Download className="size-3" /> Download
+          <Download className="size-3 cursor-pointer" /> Download
         </button>
         <button
           onClick={onRetry}
           title="Retry render"
-          className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
+          className="flex items-center cursor-pointer gap-1 px-2 py-1 rounded-md border bg-white hover:bg-gray-50"
         >
-          <RefreshCw className="size-3" /> Retry
+          <RefreshCw className="size-3 cursor-pointer" /> Retry
         </button>
       </div>
     </div>

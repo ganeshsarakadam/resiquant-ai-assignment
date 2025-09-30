@@ -30,7 +30,7 @@ export const useSelectionUrlState = () => {
       page:         newState.page         !== undefined ? newState.page         : state.page,
     };
 
-    // ✅ No-op guard
+    // No-op guard
     if (
       merged.submissionId === state.submissionId &&
       merged.documentId   === state.documentId &&
@@ -39,17 +39,17 @@ export const useSelectionUrlState = () => {
       return;
     }
 
-    // ✅ Build from current URL, not from scratch
+    // Build from current URL, not from scratch
     const currentParams = new URLSearchParams(searchParams.toString());
 
-    // ✅ Deterministic set/delete
+    // Deterministic set/delete
     merged.submissionId ? currentParams.set('submissionId', merged.submissionId) : currentParams.delete('submissionId');
     merged.documentId   ? currentParams.set('documentId',   merged.documentId)   : currentParams.delete('documentId');
     merged.page != null ? currentParams.set('page', String(merged.page))         : currentParams.delete('page');
 
     const target = currentParams.toString();
 
-    // ✅ Skip only if equal to the *current* URL
+    // Skip only if equal to the *current* URL
     if (target === searchParams.toString()) return;
 
     const newUrl = `?${target}`;
@@ -92,4 +92,3 @@ export const useSelectionUrlState = () => {
     resetState,
   };
 };
-// Example usage in a component
