@@ -14,14 +14,14 @@ const Document = dynamic(
   { ssr: false }
 );
 
-import type { PDFDocumentProxy } from 'pdfjs-dist'
+import type { PdfDocumentMinimal } from '@/types'
 
 interface PdfDocumentProps {
   documentUrl: string
   numPages: number
   fieldsByPage: Map<number, ExtractedField[]>
   initialPage: number
-  onDocumentLoadSuccess?: (pdf: PDFDocumentProxy) => void
+  onDocumentLoadSuccess?: (pdf: PdfDocumentMinimal) => void
   onDocumentLoadError?: (error: Error) => void
   onHighlightClick?: (field: ExtractedField) => void
   onPageChange?: (page: number) => void
@@ -41,8 +41,8 @@ export const PdfDocument = ({
     <Document
       file={documentUrl}
       onLoadSuccess={doc => {
-        // Adapt to consumer callback type (react-pdf doc shape is compatible superset)
-        onDocumentLoadSuccess?.(doc as unknown as PDFDocumentProxy)
+        // React-pdf returns a superset; we only need numPages.
+  onDocumentLoadSuccess?.(doc as unknown as PdfDocumentMinimal)
       }}
       onLoadError={onDocumentLoadError}
       error={<div className="p-4 text-red-600 text-sm">Failed to load PDF.</div>}

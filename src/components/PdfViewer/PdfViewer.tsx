@@ -5,12 +5,12 @@ import { Document as DocType } from '@/types'
 import { PdfHeader } from './PdfHeader'
 import { PdfDocument } from './PdfDocument'
 import type { ExtractedField } from '@/types'
-import type { PDFDocumentProxy } from 'pdfjs-dist'
+import type { PdfDocumentMinimal } from '@/types'
 
 export interface PdfViewerProps {
   document: DocType;
   initialPage?: number;
-  onDocumentLoadSuccess?: (pdf: PDFDocumentProxy) => void;
+  onDocumentLoadSuccess?: (pdf: PdfDocumentMinimal) => void;
   onDocumentLoadError?: (error: Error) => void;
   onDocumentLoadProgress?: (ratio: number) => void;
   submissionId?: string;
@@ -54,7 +54,7 @@ export const PdfViewer = ({
    * @param pdf 
    * @description This is the handleDocSuccess function that handles the document load success
    */
-  const handleDocSuccess = useCallback((pdf: PDFDocumentProxy) => {
+  const handleDocSuccess = useCallback((pdf: PdfDocumentMinimal) => {
     setNumPages(pdf.numPages)
     setCurrentPage(initialPage)
     onDocumentLoadSuccess?.(pdf)

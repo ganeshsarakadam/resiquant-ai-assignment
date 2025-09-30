@@ -69,3 +69,8 @@ export interface DocumentProcessed {
   fieldsExtracted: number;
 }
 
+// Minimal subset of a PDF.js document we rely on in viewers. Extend here if more properties needed later.
+export interface PdfDocumentMinimal {
+  numPages: number;
+}
+

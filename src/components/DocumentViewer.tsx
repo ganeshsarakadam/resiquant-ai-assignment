@@ -1,5 +1,5 @@
 'use client'
-
+import type { PdfDocumentMinimal } from '@/types'
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState"
 import { EmailViewer } from "@/components/EmailViewer"
 import { FileText } from "lucide-react"
@@ -13,10 +13,6 @@ import { loadExtraction } from "@/lib/utils"
 import { PdfViewer } from "@/components/PdfViewer"
 import { DocxViewer } from "@/components/DocxViewer"
 import { SheetViewer } from "@/components/SheetViewer"
-
-
-// Minimal PDF document shape we rely on (react-pdf returns a superset).
-interface PDFDocumentMinimal { numPages: number }
 
 interface DocumentViewerProps {
     onFieldHighlight?: (id: string) => void;
@@ -48,7 +44,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      * On document load success, we set the number of pages and the loading state to false
      * @param pdf 
      */
-    const onDocumentLoadSuccess = (pdf: PDFDocumentMinimal) => {
+    const onDocumentLoadSuccess = (pdf: PdfDocumentMinimal) => {
         setNumPages(pdf.numPages);
         setIsDocumentLoadingInProgress(false);
     }
