@@ -8,7 +8,7 @@
 - State: Lightweight React Context (`HighlightContext`) + URL params (shareable deep links) instead of heavier global store.
 - Data: Static JSON manifests + extraction JSON per submission id, simulates backend API with artificial delay.
 
-### 2. Component Diagram (ASCII)
+### 2. Component Diagram
 ```
 SubmissionSelector ──┐
 SideMenu             │        +------------------+
@@ -55,7 +55,6 @@ XLSX Sheets:
 - Y offset = sum of heights of all rows before `row`.
 - Box width = sum of widths of the `colSpan` columns, box height = sum of heights of the `rowSpan` rows.
 - Normalize: `normalizedX = xOffset / totalTableWidth` giving values 0–1 just like PDFs.
-- Example: total width 1000px; cols before = 300px; span width = 250px → normalized left = 0.30, width = 0.25.
 
 
 
@@ -89,7 +88,15 @@ XLSX Sheets:
   - Add a **disabled state** where users cannot edit certain fields.  
   - Support **sorting fields** by provenance or other factors such as frequency of occurrence.
   - Grouping **fields** by Page.
+- Adding additional appearance themes to the application.
 - **Zoom and panning**: Enable zooming and panning in the document viewer to allow users to validate fields more clearly by inspecting finer details.  
 - **Backend extraction service**: Integrate a real extraction service (OCR and ML algorithms) on the backend to detect fields with more accurate bounding box dimensions.  
+
+
+### References
+- URL state  - https://medium.com/@roman_j/mastering-state-in-next-js-app-router-with-url-query-parameters-a-practical-guide-03939921d09c
+- Shadcn UI  - https://ui.shadcn.com/docs/components
+- Usage of react-pdf examples - https://codesandbox.io/examples/package/react-pdf
+- Understanding bbox usage in react - https://github.com/alx/react-bounding-box
 
 

@@ -10,11 +10,13 @@ import { DocumentViewerSkeleton } from "./Skeletons/DocumentViewerSkeleton"
 import { useHighlightSetter } from "@/contexts/HighlightContext"
 import { ExtractedField } from "@/types"
 import { loadExtraction } from "@/lib/utils"
-import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { PdfViewer } from "@/components/PdfViewer"
 import { DocxViewer } from "@/components/DocxViewer"
 import { SheetViewer } from "@/components/SheetViewer"
 
+
+// Minimal PDF document shape we rely on (react-pdf returns a superset).
+interface PDFDocumentMinimal { numPages: number }
 
 interface DocumentViewerProps {
     onFieldHighlight?: (id: string) => void;
@@ -46,7 +48,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      * On document load success, we set the number of pages and the loading state to false
      * @param pdf 
      */
-    const onDocumentLoadSuccess = (pdf: PDFDocumentProxy) => {
+    const onDocumentLoadSuccess = (pdf: PDFDocumentMinimal) => {
         setNumPages(pdf.numPages);
         setIsDocumentLoadingInProgress(false);
     }
