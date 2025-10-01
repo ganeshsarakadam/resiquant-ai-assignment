@@ -2,13 +2,12 @@
 
 import SideMenu from "@/components/SideMenu";
 import DocumentViewer from "@/components/DocumentViewer";
-import FieldList from "@/components/FieldList";
+import {FieldList} from "@/components/FieldList";
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState";
 import { HighlightProvider } from "@/contexts/HighlightContext";
 import SubmissionSelector from "@/components/SubmissionSelector";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Button } from "@/components/ui/button";
-import { ExtractionData } from "@/types";
+import { Button } from "@/components/ui/button";   
 import {
   Sheet,
   SheetContent,
@@ -17,8 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { PanelLeftOpen } from "lucide-react";
-import { useState, useEffect, Suspense } from "react";
-import { loadExtraction } from "@/lib/utils";
+import { useState, Suspense } from "react";
 
 function HomeInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
