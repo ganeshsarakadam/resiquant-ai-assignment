@@ -22,10 +22,7 @@ interface HighlightOverlayProps {
   documentType: 'pdf' | 'docx' | 'xlsx';
   cellWidths?: number[];
   cellHeights?: number[];
-  columnCount?: number;
-  rowCount?: number;
   totalTableHeight?: number; // Added for full table height
-  isActive?: boolean;
   showLabels?: boolean;
   totalTableWidth?: number;
   offsetX?: number; // left offset (e.g., container padding)
@@ -96,11 +93,8 @@ export const HighlightOverlay = memo(({
   documentType,
   cellWidths = [],
   cellHeights = [],
-  columnCount = 10,
-  rowCount = 100,
   totalTableHeight = 0,
   totalTableWidth = 0,
-  isActive = false,
   showLabels = false,
   offsetX = 0,
   offsetY = 0

@@ -1,6 +1,7 @@
 'use client';
 
 import { Document } from "@/types";
+import Image from "next/image";
 
 interface ImageViewerProps {
     document: Document;
@@ -16,10 +17,13 @@ export const ImageViewer = ({ document }: ImageViewerProps) => {
                 </div>
             </div>
             <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-                <img
+                <Image
                     src={document.url}
                     alt={document.name}
+                    width={800}
+                    height={600}
                     className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                    style={{ width: 'auto', height: 'auto' }}
                 />
             </div>
         </div>

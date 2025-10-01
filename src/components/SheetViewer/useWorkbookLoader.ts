@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type * as XLSX from 'xlsx-js-style';
 import { SheetData, yieldToBrowser } from './types';
-import { Document as DocType, ExtractedField } from '@/types';
+import { Document as DocType } from '@/types';
 
 interface UseWorkbookLoaderParams {
   document: DocType;

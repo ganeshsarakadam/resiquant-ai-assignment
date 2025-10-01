@@ -46,12 +46,6 @@ export const useExtractionFields = (): UseExtractionFieldsReturn => {
     }
   }, []);
 
-  const saveFieldsToLocalStorage = useCallback((submissionId: string, fieldsToSave: Fields[]) => {
-    const LOCAL_STORAGE_KEY = `extractedFields_${submissionId}`;
-    console.log('Saving to localStorage:', LOCAL_STORAGE_KEY, fieldsToSave);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fieldsToSave));
-  }, []);
-
   const hasLocalStorageData = useCallback((submissionId: string) => {
     const LOCAL_STORAGE_KEY = `extractedFields_${submissionId}`;
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);

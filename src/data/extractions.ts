@@ -1,6 +1,5 @@
 import { delay } from '@/lib/utils';
 import { ExtractionData } from '@/types';
-import { time } from 'console';
 
 // Load extraction data for a specific submission
 export async function loadExtractionData(submissionId: string): Promise<ExtractionData | null> {

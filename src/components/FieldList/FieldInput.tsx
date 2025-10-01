@@ -18,7 +18,6 @@ interface FieldInputProps {
 }
 
 export const FieldInput = ({  
-  label,
   value,
   placeholder,
   onEdit,
@@ -31,12 +30,12 @@ export const FieldInput = ({
   const [draftValue, setDraftValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Update draft value when prop value changes
+
   useEffect(() => {
     setDraftValue(value);
   }, [value]);
 
-  // Focus input when editing starts
+
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();

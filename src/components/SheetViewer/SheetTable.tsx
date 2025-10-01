@@ -22,17 +22,20 @@ export const SheetTable = React.memo(function SheetTable({ sheet, extractedField
   const [containerPadding, setContainerPadding] = useState({ left: 0, top: 0 });
 
   useEffect(() => {
+    const container = containerRef.current;
+    const table = tableRef.current;
+    
     let frame = 0;
     const measure = () => {
-      if (!containerRef.current || !tableRef.current) return;
-      const { clientWidth, clientHeight } = containerRef.current;
-      const rows = tableRef.current.querySelectorAll('tr');
+      if (!container || !table) return;
+      const { clientWidth, clientHeight } = container;
+      const rows = table.querySelectorAll('tr');
       const newCellHeights = Array.from(rows).map(r => (r as HTMLTableRowElement).getBoundingClientRect().height);
       const newTotalTableHeight = newCellHeights.reduce((sum, h) => sum + h, 0);
       const firstRowCells = rows[0]?.querySelectorAll('td') || [];
       const newCellWidths = Array.from(firstRowCells).map(c => (c as HTMLTableCellElement).getBoundingClientRect().width);
       const newTotalTableWidth = newCellWidths.reduce((sum, w) => sum + w, 0);
-      const style = window.getComputedStyle(containerRef.current);
+      const style = window.getComputedStyle(container);
       setContainerPadding({ left: parseFloat(style.paddingLeft) || 0, top: parseFloat(style.paddingTop) || 0 });
       setContainerSize({ width: clientWidth, height: clientHeight });
       setCellWidths(newCellWidths.length ? newCellWidths : (sheet.colWidths?.map(w => (w || 8) * 7) || Array(sheet.data[0]?.length || 1).fill(80)));
@@ -43,11 +46,11 @@ export const SheetTable = React.memo(function SheetTable({ sheet, extractedField
     frame = requestAnimationFrame(measure);
     window.addEventListener('resize', measure);
     const ro = new ResizeObserver(measure);
-    if (containerRef.current) ro.observe(containerRef.current);
+    if (container) ro.observe(container);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', measure);
-      if (containerRef.current) ro.unobserve(containerRef.current);
+      if (container) ro.unobserve(container);
     };
   }, [sheet.colWidths, sheet.rowHeights, sheet.data]);
 
@@ -139,8 +142,6 @@ export const SheetTable = React.memo(function SheetTable({ sheet, extractedField
             documentType="xlsx"
             cellWidths={cellWidths}
             cellHeights={cellHeights}
-            columnCount={maxColumns}
-            rowCount={displayData.length}
             totalTableHeight={totalTableHeight}
             totalTableWidth={totalTableWidth}
             offsetX={containerPadding.left}

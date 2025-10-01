@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Document as DocType } from '@/types'
 import { PdfHeader } from './PdfHeader'
 import { PdfDocument } from './PdfDocument'

@@ -25,7 +25,6 @@ const FieldList = () => {
     const {
         fields,
         isLoading,
-        error,
         isModified,
         loadExtractionFields,
         setFields,
@@ -53,23 +52,22 @@ const FieldList = () => {
     }
 
     const handleResetToDefault = () => {
-        // Reset all fields to their original values
-        setFields(prevFields => 
-            prevFields.map(field => ({
-                ...field,
-                modifiedValue: '',
-                status: "original" as const
-            }))
-        );
-        // Clear localStorage
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-        // Reset modified state
-        setIsModified(false);
+                                            setFields(prevFields => 
+                                                prevFields.map(field => ({
+                                                    ...field,
+                                                    modifiedValue: '',
+                                                    status: "original" as const
+                                                }))
+                                            );
+                                            // Clear localStorage
+                                            localStorage.removeItem(LOCAL_STORAGE_KEY);
+                                            // Reset modified state
+                                            setIsModified(false);
     };
 
     const handleSnippetClick = (field: Fields) => {
-        userInitiatedHighlightRef.current = field.id;
-        highlightField(field);
+                                        userInitiatedHighlightRef.current = field.id;
+                                        highlightField(field);
     };
 
     useEffect(() => {

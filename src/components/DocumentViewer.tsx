@@ -1,5 +1,4 @@
 'use client'
-import type { PdfDocumentMinimal } from '@/types'
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState"
 import { EmailViewer } from "@/components/EmailViewer"
 import { FileText } from "lucide-react"
@@ -25,7 +24,6 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
     const highlightField = useHighlightSetter();
     const [viewerError, setViewerError] = useState<string | null>(null);
     const [reloadKey, setReloadKey] = useState(0);
-    const [numPages, setNumPages] = useState<number>(0);
     const [isDocumentLoadingInProgress, setIsDocumentLoadingInProgress] = useState(true);
     const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
 
@@ -47,8 +45,7 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      * On document load success, we set the number of pages and the loading state to false
      * @param pdf 
      */
-    const onDocumentLoadSuccess = (pdf: PdfDocumentMinimal) => {
-        setNumPages(pdf.numPages);
+    const onDocumentLoadSuccess = () => {
         setIsDocumentLoadingInProgress(false);
     }
 
@@ -68,7 +65,6 @@ const DocumentViewer = ({ onFieldHighlight }: DocumentViewerProps) => {
      * If a document is selected, we set the loading state to true
      */
     useEffect(() => {
-        setNumPages(0);
         setViewerError(null);
         if (!document) {
             setIsDocumentLoadingInProgress(false);

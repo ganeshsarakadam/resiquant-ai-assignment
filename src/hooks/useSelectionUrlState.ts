@@ -43,9 +43,21 @@ export const useSelectionUrlState = () => {
     const currentParams = new URLSearchParams(searchParams.toString());
 
     // Deterministic set/delete
-    merged.submissionId ? currentParams.set('submissionId', merged.submissionId) : currentParams.delete('submissionId');
-    merged.documentId   ? currentParams.set('documentId',   merged.documentId)   : currentParams.delete('documentId');
-    merged.page != null ? currentParams.set('page', String(merged.page))         : currentParams.delete('page');
+    if (merged.submissionId) {
+      currentParams.set('submissionId', merged.submissionId);
+    } else {
+      currentParams.delete('submissionId');
+    }
+    if (merged.documentId) {
+      currentParams.set('documentId', merged.documentId);
+    } else {
+      currentParams.delete('documentId');
+    }
+    if (merged.page != null) {
+      currentParams.set('page', String(merged.page));
+    } else {
+      currentParams.delete('page');
+    }
 
     const target = currentParams.toString();
 

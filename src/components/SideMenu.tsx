@@ -1,18 +1,12 @@
 'use client'
 
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useSelectionUrlState } from "@/hooks/useSelectionUrlState"
-import {
-    PanelLeftClose,
-    PanelLeftOpen,
-} from 'lucide-react';
 import { DocumentList } from "@/components/DocumentList";
 import { SideMenuSkeleton } from "@/components/Skeletons/SideMenuSkeleton";
 import { useState, useEffect } from "react";
 import { getDocumentsById } from "@/data";
 import { Document } from "@/types";
-import { SelectionUrlState } from "@/hooks/useSelectionUrlState";
 
 // Simplified: static (non-collapsible) side menu
 const SideMenu = () => {

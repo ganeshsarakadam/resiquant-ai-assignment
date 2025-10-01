@@ -75,6 +75,7 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
     }
     run();
     return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.url, reloadToken]);
 
   const fieldsByPage = useMemo(() => {
@@ -157,7 +158,6 @@ export const DocxViewer = ({ document: doc, initialPage = 1, extractedFields, on
             pages={pages}
             fieldsByPage={fieldsByPage}
             setApi={setApi}
-            api={api}
             showArrows={pages.length > 1}
             onHighlightClick={onHighlightClick}
           />

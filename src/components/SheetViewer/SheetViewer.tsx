@@ -53,7 +53,7 @@ export const SheetViewer: React.FC<SheetViewerProps> = React.memo(function Sheet
       setCurrentIndex(clamped);
       if (state.page !== clamped + 1) setPageNumber(clamped + 1);
     }
-  }, [state.page, api, sheets.length]);
+  }, [state.page, api, sheets.length, setPageNumber]);
 
   const handleDownload = useCallback(() => {
     const a = window.document.createElement('a');

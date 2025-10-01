@@ -21,9 +21,11 @@ export const PdfPage = ({ pageNumber, totalPages, pageFields, onHighlightClick }
 
   // Update container size when the page loads or resizes
   useEffect(() => {
+    const container = containerRef.current;
+    
     const updateSize = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current
+      if (container) {
+        const { clientWidth, clientHeight } = container
         // console.log(`[PdfPage ${pageNumber}] Container size:`, { clientWidth, clientHeight })
         setContainerSize({ width: clientWidth, height: clientHeight })
       }
@@ -34,13 +36,13 @@ export const PdfPage = ({ pageNumber, totalPages, pageFields, onHighlightClick }
     
     // Set up resize observer
     const observer = new ResizeObserver(updateSize)
-    if (containerRef.current) {
-      observer.observe(containerRef.current)
+    if (container) {
+      observer.observe(container)
     }
 
     return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current)
+      if (container) {
+        observer.unobserve(container)
       }
     }
   }, [pageNumber])
@@ -79,9 +81,8 @@ export const PdfPage = ({ pageNumber, totalPages, pageFields, onHighlightClick }
           height={containerSize.height}
           boxes={pageFields.map((f: ExtractedField) => f.provenance.bbox!).filter(Boolean)}
           overlayFields={pageFields}
-          onClickBox={(field: ExtractedField, boxIndex: number) => {
+          onClickBox={(field: ExtractedField) => {
             // console.log('Clicked field:', field);
-            // console.log('Box index:', boxIndex);
             
             // Call original callback if provided
             if (onHighlightClick) {

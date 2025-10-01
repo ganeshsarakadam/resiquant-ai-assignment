@@ -53,9 +53,7 @@ interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, ExtraDi
   status: "modified" | "original";
   onEdit: (value: string) => void;
   onDelete: () => void;
-  onConfirm: () => void;
   onCancel: () => void;
-  editable: boolean;
   disabled: boolean;
   variant?: "default" | "compact" | "ultra";
   confidence?: number;
@@ -65,14 +63,12 @@ interface FieldCardProps extends VariantProps<typeof fieldCardVariants>, ExtraDi
 }
 export const FieldCard = (props: FieldCardProps) => {
   const {
-    label,
     value,
     placeholder,
     status,
+    label,
     onEdit, 
-    onConfirm,
     onCancel,
-    editable,
     disabled,
     provenanceSnippet,
     onSnippetClick,
@@ -91,10 +87,6 @@ export const FieldCard = (props: FieldCardProps) => {
   const handleCancel = () => {
     onCancel?.();
     setIsEditing(false);
-  };
-
-  const handleStartEdit = () => {
-    setIsEditing(true);
   };
 
 

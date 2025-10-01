@@ -3,18 +3,16 @@
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 import { ExtractedField } from '@/types';
 import { PageSlide } from './PageSlide';
-import React from 'react';
 
 interface PageCarouselProps {
   pages: HTMLElement[];
   fieldsByPage: Map<number, ExtractedField[]>;
   setApi: (api: CarouselApi) => void;
-  api: CarouselApi | undefined;
   showArrows: boolean;
   onHighlightClick?: (field: ExtractedField) => void;
 }
 
-export function PageCarousel({ pages, fieldsByPage, setApi, api, showArrows, onHighlightClick }: PageCarouselProps) {
+export function PageCarousel({ pages, fieldsByPage, setApi, showArrows, onHighlightClick }: PageCarouselProps) {
   if (!pages.length) return null;
   return (
     <div className="h-full flex flex-col">

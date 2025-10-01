@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { ExtractedField } from '@/types';
 import { useSearchParams } from 'next/navigation';
 
