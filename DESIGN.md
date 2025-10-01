@@ -133,7 +133,6 @@ XLSX Sheets:
   - Add a **delete field** option.  
   - Add a **disabled state** where users cannot edit certain fields.  
   - Support **sorting fields** by provenance or other factors such as frequency of occurrence.
-  - Extending **Keyboard controls** to edit the field, currently only supports double click.
   - Grouping **fields** by Page.
 - Adding additional appearance themes to the application (like dark, combibnational color palette themes).
 - **Zoom and panning**: Enable zooming and panning in the document viewer to allow users to validate fields more clearly by inspecting finer details.  
